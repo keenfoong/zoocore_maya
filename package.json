@@ -1,0 +1,10 @@
+{"environment": {"PYTHONPATH": ["{self}"],
+                 "ZOO_BASE": "{self}",
+                 "ZOO_COMMAND_LIB":"{self}/zoo/libs/maya/mayacommand/library",
+                 "ZOO_META_PATHS":["{self}/zoo/libs/maya/meta/base.py",
+                                  "{self}/zoo/libs/maya/meta/metacamera.py",
+                                  "{self}/zoo/libs/maya/meta/metarig.py"]
+},
+  "version": "1.0.0",
+  "requirements": [],
+"name": "zoocore_maya"}

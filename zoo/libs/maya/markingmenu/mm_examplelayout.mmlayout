@@ -1,0 +1,15 @@
+{"items":{"N": "",
+          "NW": "",
+          "W": "",
+          "SW": "",
+          "S": "",
+          "SE": "",
+          "E": "",
+          "NE": "",
+          "generic": [{"type": "menu",
+                      "name": "Testmenu",
+                      "children": []}
+                      ]
+
+          },
+"id": ""}
