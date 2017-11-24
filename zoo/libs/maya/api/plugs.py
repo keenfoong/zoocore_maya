@@ -256,7 +256,7 @@ def serializePlug(plug):
                      "name": plug.partialName(includeNonMandatoryIndices=True, useLongNames=True,
                                               includeInstancedIndices=True),
                      "channelBox": plug.isChannelBox, "keyable": plug.isKeyable,
-                     "locked": plug.isLocked, "type": plugType(plug)}
+                     "locked": plug.isLocked, "type": plugType(plug), "isArray": plug.isArray}
                     )
         if plugType(plug) == attrtypes.kMFnkEnumAttribute:
             data["enums"] = enumNames(plug)
@@ -267,11 +267,36 @@ def serializePlug(plug):
             data.update({"isDynamic": False, "channelBox": plug.isChannelBox, "keyable": plug.isKeyable,
                          "locked": plug.isLocked, "type": attrType, "value": getPythonTypeFromPlugValue(plug),
                          "name": plug.partialName(includeInstancedIndices=True, useLongNames=True,
-                                                  includeNonMandatoryIndices=True)})
+                                                  includeNonMandatoryIndices=True),"isArray": plug.isArray}
+                        )
             if plugType(plug) == attrtypes.kMFnkEnumAttribute:
                 data["enums"] = enumNames(plug)
 
     return data
+
+
+def serializeConnection(plug):
+    """Take's destination om2.MPlug and serializes the connection as a dict.
+
+    :param plug: A om2.MPlug that is the destination of a connection
+    :type plug: om2.MPlug
+    :return: {sourcePlug: str,
+              destinationPlug: str,
+              source: str, # source node
+              destination: str} # destination node
+
+    :rtype: dict
+    """
+    source = plug.source()
+    destPlug = plug.node()
+    sourceN = source.node()
+    destN = destPlug.node()
+    return {"sourcePlug": source.partialName(includeNonMandatoryIndices=True, useLongNames=True),
+            "destinationPlug": plug.partialName(includeNonMandatoryIndices=True, useLongNames=True),
+            "source": om2.MFnDagNode(sourceN).fullPathName() if source.hasFn(om2.MFn.kDagNode) else
+            om2.MFnDependencyNode(sourceN).name(),
+            "destination": om2.MFnDagNode(destN).fullPathName() if destN.hasFn(om2.MFn.kDagNode) else
+            om2.MFnDependencyNode(destN).name()}
 
 
 def enumNames(plug):

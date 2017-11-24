@@ -209,20 +209,8 @@ def addConstraintMap(node, driven, utilities):
         compoundPlug = addConstraintAttribute(node)
     else:
         compoundPlug = mfn.findPlug("constraints", False)
-    count = compoundPlug.evaluateNumElements()
-    if count == 0:
-        availPlug = compoundPlug.elementByLogicalIndex(0)
-        drivenPlug = availPlug.child(0)
-    else:
-        for i in xrange(count):
-            availPlug = compoundPlug.elementByPhysicalIndex(i)
-            drivenPlug = availPlug.child(0)
-            if drivenPlug.isSource:
-                continue
-            break
-        else:
-            availPlug= compoundPlug.elementByLogicalIndex(count)
-            drivenPlug = availPlug.child(0)
+    availPlug = plugs.nextAvailableElementPlug(compoundPlug)
+    drivenPlug = availPlug.child(0)
     # lets add the driven nodes to the xth of the element compound
     for drive in iter(driven):
         if drive is None:

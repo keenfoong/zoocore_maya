@@ -126,22 +126,32 @@ def isPointInView(camera, point, width, height):
 
 
 def serializeNodes(graphNodes, skipAttributes=None, includeConnections=True):
-    data = []
-    for n in iter(graphNodes):
-        nData = nodes.serializeNode(n, skipAttributes, includeConnections)
-        if nData:
-            data.append(nData)
-    return data
+    return [nodes.serializeNode(n, skipAttributes, includeConnections) for n in graphNodes]
 
 
-def deserializeNodes(data, includeConnections=True):
+def deserializeNodes(data):
     createNodes = []
     for n in iter(data):
-        newNode = nodes.deserializeNode(n, includeConnections)
+        newNode = nodes.deserializeNode(n)
         if newNode:
             createNodes.append(newNode)
     return createNodes
 
+
+class GraphDeserializer(list):
+    def __init__(self, data):
+        super(GraphDeserializer, self).__init__(data)
+
+    def deserializeGraph(self):
+        for index in xrange(len(self)):
+            self[index] = nodes.deserializeNode(self[index])
+
+    def __getattr__(self, item):
+        for i in iter(self):
+            if nodes.nameFromMObject(i, True, False) == item:
+                if i.hasFn(om2.MFn.DagNode):
+                    return om2.MFnDagNode(i)
+                return om2.MFnDependencyNode(i)
 
 def aimNodes(targetNode, driven, aimVector=None,
              upVector=None):

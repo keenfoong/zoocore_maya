@@ -735,6 +735,59 @@ def addCompoundAttribute(node, longName, shortName, attrMap, isArray=False):
     return compObj
 
 
+def addAttributesFromList(node, data):
+    """Creates an attribute on the node given a list(dict) of attribute data
+
+        :param data: The serialized form of the attribute
+                    [{
+                        "channelBox": true,
+                        "default": 3,
+                        "isDynamic": true,
+                        "keyable": false,
+                        "locked": false,
+                        "max": 9999,
+                        "min": 1,
+                        "name": "jointCount",
+                        "softMax": null,
+                        "softMin": null,
+                        "Type": 2,
+                        "value": 3
+                        "isArray": True
+                    }]
+        :type data: dict
+        :return: A list of create MPlugs
+        :rtype: list(om2.MPlug)
+        """
+    created = []
+    for attrData in iter(data):
+        Type = attrData["Type"]
+        default = attrData["default"]
+        value = attrData["value"]
+        name = attrData["name"]
+        if Type == attrtypes.kMFnDataString:
+            default = om2.MFnStringData().create(default)
+        elif Type == attrtypes.kMFnDataMatrix:
+            default = om2.MFnMatrixData().create(om2.MMatrix(default))
+        elif Type == attrtypes.kMFnUnitAttributeAngle:
+            default = om2.MAngle(default, om2.MAngle.kDegrees)
+            value = om2.MAngle(value, om2.MAngle.kDegrees)
+
+        plug = om2.MPlug(node, addAttribute(node, name, name, Type, isArray=data.get("array", False), apply=True))
+        plugs.setPlugDefault(plug, default)
+
+        plug.isChannelBox = attrData["value"]
+        plug.isKeyable = attrData["keyable"]
+        plugs.setLockState(plug, attrData["locked"])
+        plugs.setMin(plug, attrData["min"])
+        plugs.setMax(plug, attrData["max"])
+        plugs.setSoftMin(plug, attrData["softMin"])
+        plugs.setSoftMax(plug, attrData["softMax"])
+        if not plug.attribute().hasFn(om2.MFn.kMessageAttribute):
+            plugs.setPlugValue(plug, value)
+        created.append(plug)
+    return created
+
+
 def addAttribute(node, longName, shortName, attrType=attrtypes.kMFnNumericDouble, isArray=False, apply=True):
     """This function uses the api to create attributes on the given node, currently WIP but currently works for
     string,int, float, bool, message, matrix. if the attribute exists a ValueError will be raised.
@@ -920,7 +973,7 @@ def serializeNode(node, skipAttributes=None, includeConnections=True):
     if req:
         data["requirements"] = req
     if node.hasFn(om2.MFn.kDagNode):
-        data["parent"] = nameFromMObject(dep.parent(0))
+        data["parent"] = om2.MFnDagNode(dep.parent(0)).fullPathName()
     attributes = []
     for pl in iterAttributes(node, skip=skipAttributes):
         attrData = plugs.serializePlug(pl)
@@ -930,11 +983,7 @@ def serializeNode(node, skipAttributes=None, includeConnections=True):
     if includeConnections:
         connections = []
         for destination, source in iterConnections(node, source=False, destination=True):
-            sourceNode = source.node()
-            nodeName = om2.MFnDagNode(sourceNode).fullPathName() if sourceNode.hasFn(
-                om2.MFn.kDagNode) else om2.MFnDependencyNode(sourceNode).name()
-            connections.append((destination.partialName(includeNonMandatoryIndices=True, useLongNames=True),
-                                nodeName, source.partialName(includeNonMandatoryIndices=True, useLongNames=True)))
+            connections.append(plugs.serializeConnection(destination))
         if connections:
             data["connections"] = connections
     if attributes:
@@ -943,7 +992,7 @@ def serializeNode(node, skipAttributes=None, includeConnections=True):
     return data
 
 
-def deserializeNode(data, includeConnections=True):
+def deserializeNode(data):
     """
 
     :param data: Same data as serializeNode() but can be a varient of this, for example the IO
@@ -956,75 +1005,22 @@ def deserializeNode(data, includeConnections=True):
     name = om2.MNamespace.stripNamespaceFromName(data["name"]).split("|")[-1]
     nodeType = data["type"]
     parent = data["parent"]
-    req = data.get("requirements")
-    if req:
-        for r in iter(req):
-            try:
-                cmds.loadPlugin(r)
-            except RuntimeError:
-                logger.debug("Could not load plugin->{}".format(r))
-                return
-
-    if not parent:
-        newNode = createDGNode(name, nodeType)
-        dep = om2.MFnDependencyNode(newNode)
-    else:
+    req = data.get("requirements", ())
+    for r in iter(req):
+        try:
+            cmds.loadPlugin(r)
+        except RuntimeError:
+            logger.error("Could not load plugin->{}".format(r), exc_info=True)
+            return
+    if parent:
         newNode = createDagNode(name, nodeType)
-        dep = om2.MFnDagNode(newNode)
+    else:
+        newNode = createDGNode(name, nodeType)
+
     # attribute key doesn't need to exist so check
     attributes = data.get("attributes", {})
     for attrData in iter(attributes.items()):
-        # @todo create deserialize plug function which includes connections?
-        attrName = attrData["name"]
-        if not attrData.get("isDynamic"):
-            plug = dep.findPlug(attrName, False)
-            plugs.setPlugValue(plug, attrData["value"])
-            attr, at = attrtypes.mayaTypeFromType(attrData["type"])
-            if attr is None:
-                continue
-            newAttr = attr(plug.attribute())
-        else:
-            newAttr = addAttribute(newNode, attrName, attrName, attrData["type"])
-            if newAttr is None:
-                continue
-            if attrData["type"] != attrtypes.kMFnMessageAttribute:
-                plug = om2.MPlug(newNode, newAttr.object())
-                max = attrData.get("max")
-                min = attrData.get("min")
-                softMax = attrData.get("softMax")
-                softMin = attrData.get("softMin")
-                default = attrData.get("default")
-                if default is not None:
-                    plugs.setPlugDefault(plug, default)
-                if max is not None:
-                    plugs.setMax(plug, max)
-                if min is not None:
-                    plugs.setMin(plug, min)
-                if softMax is not None:
-                    plugs.setSoftMax(plug, softMax)
-                if softMin is not None:
-                    plugs.setSoftMin(plug, softMin)
-        newAttr.keyable = attrData["keyable"]
-        newAttr.channelBox = attrData["channelBox"]
-        plug.isLocked = attrData["locked"]
-
-    if includeConnections:
-        # tuple(nodeName, plugName) or MPlug
-        connections = data.get("connections", [])
-        for con in iter(connections):
-            if isinstance(con, om2.MPlug):
-                try:
-                    plugs.connectPlugs(con, plug)
-                except RuntimeError:
-                    pass
-            # fastest(computation wise) way to determine if the node exists when we already have the path
-            elif isinstance(con, (tuple, list)) and cmds.objExists(con[0]):
-                sourceNode = om2.MFnDependencyNode(asMObject(con[0]))
-                try:
-                    sourcePlug = sourceNode.findPlug(con[1], False)
-                    plugs.connectPlugs(sourcePlug, plug)
-                except RuntimeError:
-                    pass
+        addAttributesFromList(newNode, attrData)
 
     # connections
     return newNode
