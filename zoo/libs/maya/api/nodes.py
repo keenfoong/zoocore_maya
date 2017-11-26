@@ -565,14 +565,13 @@ def getOffsetMatrix(startObj, endObj):
     return mOutputMatrix
 
 
-def getObjectMatrix(mobject):
+def getMatrix(mobject):
     """ Returns the MMatrix of the given mobject
 
     :param mobject: MObject
     :return:MMatrix
     """
-    dag = om2.MFnDagNode(mobject).getPath()
-    return om2.MFnTransform(dag).transformation().asMatrix()
+    return plugs.getPlugValue(om2.MFnDependencyNode(mobject).findPlug("matrix", False))
 
 
 def worldMatrixPlug(mobject):
@@ -587,8 +586,7 @@ def getWorldMatrix(mobject):
     :param mobject: MObject, the MObject that points the dagNode
     :return: MMatrix
     """
-    mat = worldMatrixPlug(mobject)
-    return plugs.getPlugValue(mat)
+    return plugs.getPlugValue(worldMatrixPlug(mobject))
 
 
 def decomposeMatrix(matrix, rotationOrder, space=om2.MSpace.kWorld):
@@ -1099,6 +1097,20 @@ def mirrorJoint(node, parent, translate, rotate):
 
 
 def mirrorTransform(node, parent, translate, rotate):
+    """ Mirror's the translation and rotation of a node relative to another unless the parent
+    is specified as om2.MObject.kNullObj in which case world.
+
+    :param node: the node transform the mirror
+    :type node: om2.MObject
+    :param parent: the parent Transform to mirror relative too.
+    :type parent: om2.MObject or om2.MObject.kNullObj
+    :param translate: the axis to mirror, can be one or more
+    :type translate: tuple(str)
+    :param rotate: "xy", "yz" or "xz"
+    :type rotate: str
+    :return: mirrored translation vector and the mirrored rotation matrix
+    :rtype: om2.MVector, om2.MMatrix
+    """
     currentMat = getWorldMatrix(node)
 
     transMat = om2.MTransformationMatrix(currentMat)
@@ -1110,12 +1122,12 @@ def mirrorTransform(node, parent, translate, rotate):
             translation[zoomath.AXIS[i]] *= -1
     rotMatrix = transMat.asRotateMatrix()
     # mirror the rotation on a plane
-    if rotate == "x":
-        mirrorRot = mayamath.mirrorYZ(rotMatrix)
-    elif rotate == "y":
-        mirrorRot = mayamath.mirrorXZ(rotMatrix)
-    else:
+    if rotate == "xy":
         mirrorRot = mayamath.mirrorXY(rotMatrix)
+    elif rotate == "yz":
+        mirrorRot = mayamath.mirrorYZ(rotMatrix)
+    else:
+        mirrorRot = mayamath.mirrorXZ(rotMatrix)
     # put the mirror rotationMat in the space of the parent
     if parent != om2.MObject.kNullObj:
         parentMatInv = getParentInverseMatrix(parent)
@@ -1134,3 +1146,123 @@ def mirrorNode(node, parent, translate, rotate):
     rot = mayamath.toEulerFactory(rotMatrix, transMatRotateOrder)
     setRotation(node, rot)
     setTranslation(node, translation)
+
+
+def matchTransformMulti(targetPaths, source, translation=True, rotation=True, scale=True, space=om2.MSpace.kWorld,
+                        pivot=False):
+    """Matches the transform(SRT) for a list of nodes to another node.
+
+    :param targetPaths: A list om2.MDagPaths to snap to the source
+    :type targetPaths: list(om2.MDagPath)
+    :param source: The source transform node switch the target nodes will match
+    :type source: om2.MObject
+    :param translation: True to match translation
+    :type translation: bool
+    :param rotation: True to match rotation
+    :type rotation: bool
+    :param scale: True to match scale
+    :type scale: bool
+    :param space: coordinate space
+    :type space: int
+    :param pivot:
+    :type pivot: True to match pivot
+    :return: True if passed
+    :rtype: bool
+    """
+    # get the proper matrix of source
+    if space == om2.MSpace.kWorld:
+        sourceMatrix = getWorldMatrix(source)
+        srcTfm = om2.MTransformationMatrix(sourceMatrix)
+    else:
+        sourceMatrix = getMatrix(source)
+        srcTfm = om2.MTransformtionMatrix(sourceMatrix)
+        tfm = srcTfm
+    # source pos
+    pos = srcTfm.translation(space)
+
+    # source pivot
+    srcPivot = srcTfm.scalePivot(space)
+
+    fn = om2.MFnTransform()
+    for targetPath in targetPaths:
+        targetNode = targetPath.node()
+        fn.setObject(targetNode)
+        if space != om2.MSpace.kWorld:
+            invParent = getParentInverseMatrix(targetNode)
+            tfm = om2.MTransformationMatrix(sourceMatrix * invParent)
+        # rotation
+        rot = tfm.rotation()
+        # scale
+        scl = tfm.scale(space)
+        # set Scaling
+        if scale:
+            fn.setScale(scl)
+        # set Rotation
+        if rotation:
+            fn.setRotation(rot, om2.MSpace.kTransform)
+        # set Translation
+        if translation:
+            if pivot:
+                nodePivot = fn.scalePivot(space)
+                pos += srcPivot - nodePivot
+            fn.setTranslation(pos, space)
+    return True
+
+
+def matchTransformSingle(targetPath, source, translation=True, rotation=True, scale=True, space=om2.MSpace.kWorld,
+                         pivot=False):
+    """Matches the transform(SRT) for a list of nodes to another node.
+
+    :param targetPath: om2.MDagPath to snap to the source
+    :type targetPath: om2.MDagPath
+    :param source: The source transform node switch the target nodes will match
+    :type source: om2.MObject
+    :param translation: True to match translation
+    :type translation: bool
+    :param rotation: True to match rotation
+    :type rotation: bool
+    :param scale: True to match scale
+    :type scale: bool
+    :param space: coordinate space
+    :type space: int
+    :param pivot:
+    :type pivot: True to match pivot
+    :return: True if passed
+    :rtype: bool
+    """
+    targetNode = targetPath.node()
+    # get the proper matrix of source
+    if space == om2.MSpace.kWorld:
+        sourceMatrix = getWorldMatrix(source)
+        srcTfm = om2.MTransformationMatrix(sourceMatrix)
+        # multiply the global scale and rotation by the nodes parent inverse world matrix to get local rot & scl
+        invParent = getParentInverseMatrix(targetNode)
+        tfm = om2.MTransformationMatrix(sourceMatrix * invParent)
+    else:
+        srcTfm = om2.MTransformtionMatrix(getMatrix(source))
+        tfm = srcTfm
+    # source pos
+    pos = srcTfm.translation(space)
+
+    # source pivot
+    srcPivot = srcTfm.scalePivot(space)
+
+    # rotation
+    rot = tfm.rotation()
+    # scale
+    scl = tfm.scale(space)
+    fn = om2.MFnTransform(targetPath)
+    # set Scaling
+    if scale:
+        fn.setScale(scl)
+    # set Rotation
+    if rotation:
+        fn.setRotation(rot, om2.MSpace.kTransform)
+    # set Translation
+    if translation:
+        if pivot:
+            nodePivot = fn.scalePivot(space)
+            pos += srcPivot - nodePivot
+        fn.setTranslation(pos, space)
+    return True
+

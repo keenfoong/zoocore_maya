@@ -41,7 +41,7 @@ def aimToNode(source, target, aimVector=None,
     try:
         angle = math.acos(upRotated * eyeV)
     except ZeroDivisionError:
-        return # if already aligned then we just return
+        return  # if already aligned then we just return
 
     quatV = om2.MQuaternion(angle, eyeU)
 
@@ -204,22 +204,22 @@ def toEulerFactory(rotMatrix, rotateOrder, degrees=False):
 
 def mirrorXY(rotationMatrix):
     rotMat = om2.MMatrix(rotationMatrix)
+    rotMat[0] *= -1
     rotMat[1] *= -1
-    rotMat[2] *= -1
     rotMat[5] *= -1
-    rotMat[6] *= -1
+    rotMat[4] *= -1
     rotMat[9] *= -1
-    rotMat[10] *= -1
+    rotMat[8] *= -1
     return rotMat
 
 
 def mirrorYZ(rotationMatrix):
     rotMat = om2.MMatrix(rotationMatrix)
-    rotMat[0] *= -1
+    rotMat[1] *= -1
     rotMat[2] *= -1
-    rotMat[4] *= -1
+    rotMat[5] *= -1
     rotMat[6] *= -1
-    rotMat[8] *= -1
+    rotMat[9] *= -1
     rotMat[10] *= -1
     return rotMat
 
@@ -227,9 +227,9 @@ def mirrorYZ(rotationMatrix):
 def mirrorXZ(rotationMatrix):
     rotMat = om2.MMatrix(rotationMatrix)
     rotMat[0] *= -1
-    rotMat[1] *= -1
-    rotMat[5] *= -1
+    rotMat[2] *= -1
     rotMat[4] *= -1
-    rotMat[9] *= -1
+    rotMat[6] *= -1
     rotMat[8] *= -1
+    rotMat[10] *= -1
     return rotMat

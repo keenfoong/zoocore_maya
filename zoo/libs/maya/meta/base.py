@@ -765,8 +765,6 @@ class MetaBase(object):
         :type parent: MetaBase
         :todo: change the method name to setParent since we should only allow one parent
         """
-        if isinstance(parent, om2.MObject):
-            parent = MetaBase(parent)
         metaParent = self.metaParent()
         if metaParent is not None or metaParent == parent:
             self.removeParent()
@@ -792,11 +790,13 @@ class MetaBase(object):
     def findChildByType(self, Type):
         return [child for child in self.iterMetaChildren(depthLimit=1) if child.apiType() == Type]
 
-    def allChildrenNodes(self, recursive=False):
+    def allChildrenNodes(self, recursive=False, includeMeta=False):
         children = []
         for source, destination in nodes.iterConnections(self.mobject(), True, False):
             node = destination.node()
             if node not in children:
+                if includeMeta and om2.MFnDependencyNode(node).hasAttribute("isHive"):
+                    continue
                 children.append(destination.node())
         if recursive:
             for child in self.iterMetaChildren():
