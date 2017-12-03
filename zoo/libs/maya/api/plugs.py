@@ -288,13 +288,14 @@ def serializeConnection(plug):
     :rtype: dict
     """
     source = plug.source()
-    destPlug = plug.node()
-    sourceN = source.node()
-    destN = destPlug.node()
+    sourceNPath = ""
+    if source:
+        sourceN = source.node()
+        sourceNPath = om2.MFnDagNode(sourceN).fullPathName() if sourceN.hasFn(om2.MFn.kDagNode) else om2.MFnDependencyNode(sourceN).name()
+    destN = plug.node()
     return {"sourcePlug": source.partialName(includeNonMandatoryIndices=True, useLongNames=True),
             "destinationPlug": plug.partialName(includeNonMandatoryIndices=True, useLongNames=True),
-            "source": om2.MFnDagNode(sourceN).fullPathName() if source.hasFn(om2.MFn.kDagNode) else
-            om2.MFnDependencyNode(sourceN).name(),
+            "source": sourceNPath,
             "destination": om2.MFnDagNode(destN).fullPathName() if destN.hasFn(om2.MFn.kDagNode) else
             om2.MFnDependencyNode(destN).name()}
 

@@ -689,9 +689,18 @@ def setRotation(node, rotation, space=om2.MSpace.kTransform):
 
 
 def getRotation(obj, space, asQuaternion=False):
+    """
+    :param obj:
+    :type obj: om2.MObject or om2.MDagPath
+    :param space:
+    :type space:
+    :param asQuaternion:
+    :type asQuaternion:
+    :return:
+    :rtype:
+    """
     space = space or om2.MSpace.kTransform
-    path = om2.MFnDagNode(obj).getPath()
-    trans = om2.MFnTransform(path)
+    trans = om2.MFnTransform(obj)
     return trans.rotation(space, asQuaternion=asQuaternion)
 
 
@@ -974,6 +983,8 @@ def serializeNode(node, skipAttributes=None, includeConnections=True):
         data["parent"] = om2.MFnDagNode(dep.parent(0)).fullPathName()
     attributes = []
     for pl in iterAttributes(node, skip=skipAttributes):
+        if pl.isDefaultValue() and not pl.isConnected:
+            continue
         attrData = plugs.serializePlug(pl)
         if attrData:
             attributes.append(attrData)
@@ -1131,9 +1142,7 @@ def mirrorTransform(node, parent, translate, rotate):
     # put the mirror rotationMat in the space of the parent
     if parent != om2.MObject.kNullObj:
         parentMatInv = getParentInverseMatrix(parent)
-    else:
-        parentMatInv = om2.MMatrix().inverse()
-    mirrorRot *= parentMatInv
+        mirrorRot *= parentMatInv
     return translation, mirrorRot
 
 
@@ -1142,10 +1151,15 @@ def mirrorNode(node, parent, translate, rotate):
     rotateOrder = nFn.findPlug("rotateOrder", False).asInt()
     transMatRotateOrder = generic.intToMTransformRotationOrder(rotateOrder)
     translation, rotMatrix = mirrorTransform(node, parent, translate, rotate)  # MVector, MMatrix
-    # applyRotation and translation
-    rot = mayamath.toEulerFactory(rotMatrix, transMatRotateOrder)
-    setRotation(node, rot)
+    mTrans = om2.MTransformationMatrix(getWorldMatrix(node))
+    quat = mTrans.rotation(asQuaternion=True)
+    quat.w *= -1
+    quat.x *= -1
+    setRotation(node, quat)
     setTranslation(node, translation)
+    # rot = mayamath.toEulerFactory(rotMatrix, transMatRotateOrder)
+    # setRotation(node, rot)
+    # setTranslation(node, translation)
 
 
 def matchTransformMulti(targetPaths, source, translation=True, rotation=True, scale=True, space=om2.MSpace.kWorld,

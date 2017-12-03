@@ -169,6 +169,35 @@ def addConstraintAttribute(node):
                                                       isArray=True))
 
 
+def iterIncomingConstraints(node):
+    """Walks upstream of this `node` to find the incoming constraintMap Attribute
+    :param node:
+    :type node:
+    :return:
+    :rtype:
+    """
+    fn = om2.MFnDependencyNode(node)
+    if not fn.hasAttribute("constraint"):
+        return
+    constraintPlug = fn.findPlug("constraint", False)
+    for index in range(constraintPlug.evaluateNumElements()):
+        element = constraintPlug.elementByPhysicalIndex(index)
+        if not element.isDestination:
+            continue
+        parentPlug = element.source().parent()
+        utilsPlug = parentPlug.child(1)
+        destinations = utilsPlug.destinations()
+        # driver, utilties
+        yield parentPlug.node(), [i.node() for i in destinations]
+
+
+def serializeIncomingConstraints(node):
+    results = []
+    for driver, utilties in iterIncomingConstraints(node):
+        driverName = nodes.nameFromMObject(driver)
+        results.append({"utilities": [nodes.serializeNode(i) for i in utilties],
+                       "driver": driverName})
+
 def iterConstraints(node):
     """Generator function that loops over the attached constraints, this is done
     by iterating over the compound array attribute `constraints`.
@@ -225,7 +254,7 @@ def addConstraintMap(node, driven, utilities):
         attr = nodes.addAttribute(drive, "constraint", "constraint", attrtypes.kMFnMessageAttribute, isArray=True)
         plugs.connectPlugs(drivenPlug, om2.MPlug(drive, attr.object()))
     utilPlug = availPlug.child(1)
-    # add all the utilities to the first index
+    # add all the utilities
     for i in iter(utilities):
         if i is None:
             continue

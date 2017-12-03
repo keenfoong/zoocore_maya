@@ -206,10 +206,10 @@ def mirrorXY(rotationMatrix):
     rotMat = om2.MMatrix(rotationMatrix)
     rotMat[0] *= -1
     rotMat[1] *= -1
-    rotMat[5] *= -1
     rotMat[4] *= -1
-    rotMat[9] *= -1
+    rotMat[5] *= -1
     rotMat[8] *= -1
+    rotMat[9] *= -1
     return rotMat
 
 
