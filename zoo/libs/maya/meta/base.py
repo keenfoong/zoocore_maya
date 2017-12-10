@@ -342,8 +342,7 @@ class MetaBase(object):
 
     def __getattr__(self, name):
         if name.startswith("_"):
-            super(MetaBase, self).__getattribute__(name)
-            return
+            return super(MetaBase, self).__getattribute__(name)
         plug = self.getAttribute(name)
         if plug is not None:
             if plug.isSource:

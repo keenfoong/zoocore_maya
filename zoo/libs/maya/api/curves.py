@@ -21,12 +21,13 @@ def getCurveData(shape, space=om2.MSpace.kObject):
         shape = om2.MFnDagNode(shape).getPath()
     data = nodes.getNodeColourData(shape.node())
     curve = om2.MFnNurbsCurve(shape)
-    knots = curve.knots()
-    cvs = curve.cvPositions(space)
-    data["knots"] = [i for i in knots]
-    data["cvs"] = [(i.x, i.y, i.z) for i in cvs]
-    data["degree"] = curve.degree
-    data["form"] = curve.form
+    # so we can deserialize in world which maya does in to steps
+    if space == om2.MSpace.kWorld:
+        data["matrix"] = list(nodes.getWorldMatrix(curve.object()))
+    data.update({"knots": tuple(curve.knots()),
+                 "cvs": map(tuple, curve.cvPositions(space)),
+                 "degree": curve.degree,
+                 "form": curve.form})
     return data
 
 
@@ -35,7 +36,7 @@ def createCurveShape(parent, data):
 
     :param parent: The transform that takes ownership of the shapes, if None is supplied then one will be created
     :type parent: MObject
-    :param data: {"shapeName": {"cvs": [], "knots":[], "degree": int, "form": int}}
+    :param data: {"shapeName": {"cvs": [], "knots":[], "degree": int, "form": int, "matrix": []}}
     :type data: dict
     :return: the parent node
     :rtype: MObject
@@ -43,26 +44,34 @@ def createCurveShape(parent, data):
     if parent is None:
         parent = om2.MObject.kNullObj
     newCurve = om2.MFnNurbsCurve()
-    created = []
+    cvData = []
     for shapeName, curveData in iter(data.items()):
-        cvs = om2.MPointArray()
-        for point in curveData["cvs"]:
-            cvs.append(om2.MPoint(point))
+        cvs = om2.MPointArray(curveData["cvs"])  # om2 allows a list of lists which converts to om2.Point per element
         knots = curveData["knots"]
         degree = curveData["degree"]
         form = curveData["form"]
         enabled = curveData["overrideEnabled"]
         shape = newCurve.create(cvs, knots, degree, form, False, False, parent)
+        mat = curveData.get("matrix")
         if parent == om2.MObject.kNullObj and shape.apiType() == om2.MFn.kTransform:
             parent = shape
-            shape = nodes.childPathAtIndex(om2.MFnDagNode(shape).getPath(), -1)
-            shape = nodes.asMObject(shape)
         if enabled:
-            plugs.setPlugValue(om2.MFnDependencyNode(shape).findPlug("overrideEnabled", False),
+            plugs.setPlugValue(newCurve.findPlug("overrideEnabled", False),
                                int(curveData["overrideEnabled"]))
             colours = curveData["overrideColorRGB"]
             nodes.setNodeColour(newCurve.object(), colours)
-        created.append(shape)
+        if mat:
+            cvData.append((newCurve.getPath(), mat, cvs))
+    # apparently must use object space to create and calling setCVPosition with the forloop causing an maya error
+    # this could be because maya has yet to refresh meaning the MObject is invalid , hence the need to loop
+    # back over and multiple the cvs by the worldMatrix
+    for p, mat, cvs in cvData:
+        mat = om2.MMatrix(mat)
+        newCurve.setObject(p)
+        for i in range(len(cvs)):
+            cvs[i] *= mat
+        newCurve.setCVPositions(cvs, om2.MSpace.kWorld)
+        newCurve.updateCurve()
     return parent
 
 
@@ -108,14 +117,10 @@ def mirrorCurveCvs(curveObj, axis="x", space=None):
     for shape in shapes:
         curve = om2.MFnNurbsCurve(shape)
         cvs = curve.getCVs(space=space)
-        copyCvs = om2.MPointArray()
         # invert the cvs MPoints based on the axis
         for i in range(len(cvs)):
-            pt = cvs[i]
-            pt[axis] *= -1
-            copyCvs.append(pt)
-
-        curve.setCvPositions(copyCvs)
+            cvs[i][axis] *= -1
+        curve.setCvPositions(cvs)
         curve.updateCurve()
 
 

@@ -224,10 +224,6 @@ def createMultMatrix(name, inputs, output):
     return multMatrix
 
 
-def createWtAddMatrix():
-    pass
-
-
 def createDecompose(name, destination, translateValues, scaleValues, rotationValues, inputMatrixPlug=None):
     """Creates a decompose node and connects it to the destination node.
 
@@ -258,6 +254,51 @@ def createDecompose(name, destination, translateValues, scaleValues, rotationVal
     plugs.connectVectorPlugs(mfn.findPlug("outputRotate", False), destFn.findPlug("rotate", False), rotationValues)
     plugs.connectVectorPlugs(mfn.findPlug("outputScale", False), destFn.findPlug("scale", False), scaleValues)
     return decompose
+
+def createReverse(name, inputs, outputs):
+    """
+
+    :param name: The name for the reverse node to have, must be unique
+    :type name: str
+    :param inputs: If Plug then the plug must be a compound.
+    :type inputs: om2.MPlug or tuple
+    :param outputs: If Plug then the plug must be a compound.
+    :type outputs: om2.MPlug or tuple
+    :return: OpenMaya 2.0 MObject representing the reverse node
+    :rtype: om2.MObject
+    :raises: ValueError if the inputs or outputs is not an om2.MPlug
+    """
+    rev = nodes.createDGNode(name, "reverse")
+    fn = om2.MFnDependencyNode(rev)
+    inPlug = fn.findPlug("input", False)
+    ouPlug = fn.findPlug("output", False)
+
+    if isinstance(inputs, om2.MPlug):
+        if inputs.isCompound:
+            plugs.connectPlugs(inputs, inPlug)
+            return rev
+        else:
+            raise ValueError("Inputs Argument must be a compound when passing a single plug")
+    elif isinstance(outputs, om2.MPlug):
+        if outputs.isCompound:
+            plugs.connectPlugs(outputs, ouPlug)
+            return rev
+        else:
+            raise ValueError("Outputs Argument must be a compound when passing a single plug")
+    # passed the dealings with om2.MPlug so deal with seq type
+    for childIndex in range(len(inputs)):
+        inA = inputs[childIndex]
+        if inA is None:
+            continue
+        plugs.connectPlugs(inputs[childIndex], inPlug.child(childIndex))
+
+    for childIndex in range(len(outputs)):
+        inA = outputs[childIndex]
+        if inA is None:
+            continue
+        plugs.connectPlugs(ouPlug.child(childIndex), outputs[childIndex])
+
+    return rev
 
 
 def graphSerialize(graphNodes):

@@ -470,6 +470,18 @@ def iterExtraAttributes(node, filteredType=None):
 
 
 def iterConnections(node, source=True, destination=True):
+    """Returns a generator function containing a tuple of MPlugs
+
+    :param node: The node to search
+    :type node: om2.MObject
+    :param source: If true then all upstream connections are returned
+    :type source: bool
+    :param destination: If true all downstream connections are returned
+    :type destination: bool
+    :return: Returns a tuple of om2.MPlug instances, the first element is the connected MPlug of the given node(``node``)
+    The second element is the connected MPlug from the other node.
+    :rtype: Generator(tuple(om2.MPlug, om2.MPlug))
+    """
     dep = om2.MFnDependencyNode(node)
     for pl in iter(dep.getConnections()):
         if source and pl.isSource:

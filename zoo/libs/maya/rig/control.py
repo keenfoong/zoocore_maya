@@ -106,11 +106,6 @@ class Control(object):
             self._name = "control_new"
         if not self.dagPath:
             self.dagPath = nodes.createDagNode(self._name, "transform")
-        if isinstance(shape, basestring):
-            self.dagPath = om2.MFnDagNode(shapelib.loadFromLib(shape, parent=self.dagPath)).getPath()
-        else:
-            self.dagPath = om2.MFnDagNode(curves.createCurveShape(self.dagPath, shape)).getPath()
-
         if self.dagPath is None:
             raise ValueError("Not a valid shape name %s" % shape)
         if position is not None:
@@ -119,10 +114,17 @@ class Control(object):
             self.setRotation(rotation)
         if scale != (1, 1, 1) and scale:
             self.setScale(scale, space=om2.MSpace.kWorld)
+
+        self.setRotationOrder(rotationOrder)
+
+        if isinstance(shape, basestring):
+            self.dagPath = om2.MFnDagNode(shapelib.loadFromLib(shape, parent=self.dagPath)).getPath()
+        else:
+            self.dagPath = om2.MFnDagNode(curves.createCurveShape(self.dagPath, shape)).getPath()
         if color is not None:
             self.setColour(color, 0)
-        self.setRotationOrder(rotationOrder)
         return self.dagPath
+
 
     def addShapeFromLib(self, shapeName):
         if shapeName in shapelib.shapeNames():
@@ -147,9 +149,7 @@ class Control(object):
         if self.dagPath is None:
             return
         if cvs:
-            dag = om2.MFnDagNode(self.dagPath)
-            dagPath = dag.getPath()
-            shapes = nodes.childPaths(dagPath)
+            shapes = nodes.childPaths(self.dagPath)
             for i in shapes:
                 cvsPositions = nodes.cvPositions(i, space=space)
                 newPositions = om2.MPointArray()
