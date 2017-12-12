@@ -25,14 +25,15 @@ class UndoCmd(om2.MPxCommand):
     kCmdName = "zooAPIUndo"
 
     def __init__(self):
-        """We initialize a storage variable for a list of commands
+        """We initialize a storage variable for a list of commands.
         """
         om2.MPxCommand.__init__(self)
+        # store the zoo command and executor for the life of the MPxcommand instance.
         self._command = None
         self._commandExecutor = None
 
     def doIt(self, argumentList):
-        """Grab the list of current commands from the stack and dump it on our command so we can call undo
+        """Grab the list of current commands from the stack and dump it on our command so we can call undo.
 
         :param argumentList: MArgList
         """

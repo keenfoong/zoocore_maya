@@ -10,11 +10,24 @@ from zoo.libs.command import errors
 
 
 class MayaExecutor(base.ExecutorBase):
+    """Maya Executor class for safely injecting zoo commands into the maya undo stack via MPXCommands.
+    Always call executor.execute() method when executing commands
+    """
     def __init__(self):
         super(MayaExecutor, self).__init__()
         om2._COMMANDEXECUTOR = self
 
-    def execute(self, commandName=None, *args, **kwargs):
+    def execute(self, commandName=None, **kwargs):
+        """Function to execute Zoo commands which lightly wrap maya MPXCommands.
+        Deals with prepping the Zoo plugin with the command instance. Safely opens and closes the undo chunks via
+        maya commands (cmds.undoInfo)
+
+        :param commandName: The command.id value
+        :type commandName: str
+        :param kwargs: A dict of command instance arguments, should much the signature of the command.doit() method
+        :type kwargs: dict
+        :return: The command instance returns arguments, up to the command developer
+        """
         command = self.findCommand(commandName)
         if command is None:
             raise ValueError("No command by the name -> {} exists within the registry!".format(commandName))
@@ -122,6 +135,8 @@ class MayaExecutor(base.ExecutorBase):
         cmds.flushUndo()
 
     def _callDoIt(self, command):
+        """Internal use only, gets
+        """
         if om2.MGlobal.isRedoing():
             self.redoStack.pop()
             result = super(MayaExecutor, self)._callDoIt(command)
