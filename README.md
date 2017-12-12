@@ -7,7 +7,7 @@ To achieve such a thing we utilize OpenMaya 2.0 as much as possible and only use
 is faster and returns the correct data. For Example if a command returns obj names we'll use om2 instead since node
 paths are trash in cmds.
 Of coarse moving to OpenMaya 2.0 has a small problem when doing maya state changes, for example setting attribute values nodes we don't get
-undo/redo functionality. So we created Zoo Maya Command framework([See below](#Zoo Maya command))
+undo/redo functionality. So we created Zoo Maya Command framework [See below](#Zoo-Maya-command)
 
 
 
