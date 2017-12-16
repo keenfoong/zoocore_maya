@@ -6,5 +6,5 @@
                                   "{self}/zoo/libs/maya/meta/metarig.py"]
 },
   "version": "1.0.0",
-  "requirements": [],
+  "requirements": ["zoocore"],
 "name": "zoocore_maya"}
