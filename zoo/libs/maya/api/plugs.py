@@ -267,7 +267,7 @@ def serializePlug(plug):
             data.update({"isDynamic": False, "channelBox": plug.isChannelBox, "keyable": plug.isKeyable,
                          "locked": plug.isLocked, "type": attrType, "value": getPythonTypeFromPlugValue(plug),
                          "name": plug.partialName(includeInstancedIndices=True, useLongNames=True,
-                                                  includeNonMandatoryIndices=True),"isArray": plug.isArray}
+                                                  includeNonMandatoryIndices=True), "isArray": plug.isArray}
                         )
             if plugType(plug) == attrtypes.kMFnkEnumAttribute:
                 data["enums"] = enumNames(plug)
@@ -291,7 +291,8 @@ def serializeConnection(plug):
     sourceNPath = ""
     if source:
         sourceN = source.node()
-        sourceNPath = om2.MFnDagNode(sourceN).fullPathName() if sourceN.hasFn(om2.MFn.kDagNode) else om2.MFnDependencyNode(sourceN).name()
+        sourceNPath = om2.MFnDagNode(sourceN).fullPathName() if sourceN.hasFn(
+            om2.MFn.kDagNode) else om2.MFnDependencyNode(sourceN).name()
     destN = plug.node()
     return {"sourcePlug": source.partialName(includeNonMandatoryIndices=True, useLongNames=True),
             "destinationPlug": plug.partialName(includeNonMandatoryIndices=True, useLongNames=True),
@@ -948,6 +949,19 @@ def nextAvailableElementPlug(arrayPlug):
     for i in xrange(count):
         availPlug = arrayPlug.elementByPhysicalIndex(i)
         if availPlug.isSource:
+            continue
+        return availPlug
+    else:
+        return arrayPlug.elementByLogicalIndex(count)
+
+
+def nextAvailableDestElementPlug(arrayPlug):
+    count = arrayPlug.evaluateNumElements()
+    if count == 0:
+        return arrayPlug.elementByLogicalIndex(0)
+    for i in xrange(count):
+        availPlug = arrayPlug.elementByPhysicalIndex(i)
+        if availPlug.isDestination:
             continue
         return availPlug
     else:
