@@ -99,7 +99,6 @@ class MetaCamera(base.MetaBase):
         self.framePadding = metaCamera.framePadding.asInt()
         self.shotName = metaCamera.shotName.asString()
         self.camera_version = metaCamera.camera_version.asInt()
-        self.shotgun_context = metaCamera.shotgun_context.asString()
         self.filmFit = float(metaCamera.filmFit)
         self.aspectRatio = float(metaCamera.aspectRatio)
         self.focalLength = float(metaCamera.focalLength)
