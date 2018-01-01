@@ -24,7 +24,7 @@ def exportContext(rootNode):
             plugs.setPlugValue(plug, 0.0)
 
 
-def exportSceneAsFbx(filePath):
+def exportSceneAsFbx(filePath, skeletonDefinition=False, constraints=False):
     filePath = filePath.replace("/", "\\")
     mel.eval("FBXExportSmoothingGroups -v true;")
     mel.eval("FBXExportHardEdges -v true;")
@@ -37,7 +37,8 @@ def exportSceneAsFbx(filePath):
     mel.eval("FBXExportQuaternion -v euler;")
     mel.eval("FBXExportShapes -v true;")
     mel.eval("FBXExportSkins -v true;")
-    mel.eval("FBXExportConstraints -v true;")
+    mel.eval("FBXExportConstraints -v {};".format("false" if not constraints else "true"))
+    mel.eval("FBXExportSkeletonDefinitions -v {};".format("false" if not skeletonDefinition else "true"))
     mel.eval("FBXExportCameras -v true;")
     mel.eval("FBXExportLights -v true;")
     mel.eval("FBXExportEmbeddedTextures -v false;")
@@ -47,7 +48,7 @@ def exportSceneAsFbx(filePath):
     return filePath
 
 
-def exportAbc(filePath, sceneNode, frameRange="1 1", visibility=True, creases=True, uvSets=True, dataFormat="ogawa"):
+def exportAbc(filePath, sceneNode, frameRange="1 1", visibility=False, creases=True, uvSets=True, dataFormat="ogawa"):
     filePath = filePath.replace("/", "\\")
     command = "-frameRange {} -dataFormat {}".format(frameRange, dataFormat)
     if visibility:
@@ -81,7 +82,7 @@ def importObj(filePath):
     return filePath
 
 
-def importFbx(filepath, cameras=False, lights=False):
+def importFbx(filepath, cameras=False, lights=False, skeletonDefinition=True, constraints=True):
     filepath = filepath.replace("/", "\\")
     mel.eval("FBXImportMode -v add;")
     mel.eval("FBXImportMergeAnimationLayers -v false;")
@@ -89,7 +90,8 @@ def importFbx(filepath, cameras=False, lights=False):
     mel.eval("FBXImportConvertDeformingNullsToJoint -v false;")
     mel.eval("FBXImportMergeBackNullPivots -v false;")
     mel.eval("FBXImportSetLockedAttribute -v true;")
-    mel.eval("FBXImportConstraints -v false;")
+    mel.eval("FBXExportConstraints -v {};".format("false" if not constraints else "true"))
+    mel.eval("FBXExportSkeletonDefinitions -v {};".format("false" if not skeletonDefinition else "true"))
     mel.eval("FBXImportLights -v {};".format(str(lights).lower()))
     mel.eval("FBXImportCameras -v {};".format(str(cameras).lower()))
     mel.eval("FBXImportHardEdges -v true;")
@@ -100,7 +102,7 @@ def importFbx(filepath, cameras=False, lights=False):
     return True
 
 
-def exportFbx(filePath, sceneNode, version="FBX201600"):
+def exportFbx(filePath, sceneNode, version="FBX201600", skeletonDefinition=False, constraints=False):
     filePath = filePath.replace("/", "\\")
 
     with exportContext(nodes.asMObject(sceneNode)):
@@ -117,7 +119,8 @@ def exportFbx(filePath, sceneNode, version="FBX201600"):
         mel.eval("FBXExportQuaternion -v euler;")
         mel.eval("FBXExportShapes -v true;")
         mel.eval("FBXExportSkins -v true;")
-        mel.eval("FBXExportConstraints -v false;")
+        mel.eval("FBXExportConstraints -v {};".format("false" if not constraints else "true"))
+        mel.eval("FBXExportSkeletonDefinitions -v {};".format("false" if not skeletonDefinition else "true"))
         mel.eval("FBXExportCameras -v true;")
         mel.eval("FBXExportLights -v true;")
         mel.eval("FBXExportEmbeddedTextures -v false;")

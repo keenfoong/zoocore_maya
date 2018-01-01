@@ -1,5 +1,6 @@
 import os
 from contextlib import contextmanager
+import functools
 
 from maya import cmds
 from maya.OpenMaya import MGlobal
@@ -148,3 +149,15 @@ def isolatedNodes(nodes, panel):
         cmds.isolateSelect(panel, addDagObject=obj)
     yield
     cmds.isolateSelect(panel, state=False)
+
+
+def undoDecorator(func):
+    @functools.wraps(func)
+    def inner(*args, **kwargs):
+        try:
+            cmds.undoInfo(openChunk=True)
+            return func(*args, **kwargs)
+        finally:
+            cmds.undoInfo(closeChunk=True)
+
+    return inner

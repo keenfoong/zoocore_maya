@@ -211,7 +211,6 @@ def createAnnotation(rootObj, endObj, text=None, name=None):
 def createMultMatrix(name, inputs, output):
     multMatrix = nodes.createDGNode(name, "multMatrix")
     fn = om2.MFnDependencyNode(multMatrix)
-    plugs.connectPlugs(fn.findPlug("matrixSum", False), output)
     compound = fn.findPlug("matrixIn", False)
     compound.evaluateNumElements()
 
@@ -221,6 +220,9 @@ def createMultMatrix(name, inputs, output):
             plugs.connectPlugs(inp, compound.elementByLogicalIndex(i))
             continue
         plugs.setPlugValue(compound.elementByLogicalIndex(i), inp)
+
+    plugs.connectPlugs(fn.findPlug("matrixSum", False), output)
+
     return multMatrix
 
 

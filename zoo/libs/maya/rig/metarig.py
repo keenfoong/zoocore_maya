@@ -1,30 +1,19 @@
+from zoo.libs.utils import general
 from maya.api import OpenMaya as om2
 
 from zoo.libs.maya.meta import base
 from zoo.libs.maya.api import attrtypes
 
 
-class MetaRig(base.MetaBase):
+class MetaRigBase(base.MetaBase):
     icon = "user"
     _ctrlPrefix = "CTRL"
     _jntPrefix = "JNT"
     _skinJntPrefix = "SKIN"
     _geoPrefix = "GEO"
     _proxyGeoPrefix = "GEO_PROXY"
-    _rootPrefix = "ROOT"
-    RIGNAMEATTR = "name"
     SUPPORTSYSTEMATTR = "supportSystem"
     SUBSYSTEMATTR = "subSystem"
-    RIGVERSIONATTR = "rigVersion"
-
-    def _initMeta(self):
-        super(MetaRig, self)._initMeta()
-        self.addAttribute(name=MetaRig.RIGVERSIONATTR, value="1.0.0", Type=attrtypes.kMFnDataString)
-        self.addAttribute(name=MetaRig.RIGNAMEATTR, value="", Type=attrtypes.kMFnDataString)
-
-    def addRootNode(self, node, name):
-        attrname = "_".join([self._rootPrefix, name])
-        return self.connectTo(attrname, node)
 
     def addControl(self, node, name):
         attrname = "_".join([self._ctrlPrefix, name])
@@ -161,16 +150,46 @@ class MetaRig(base.MetaBase):
         return list(self.iterSubSystems())
 
 
-class MetaSupportSystem(MetaRig):
+class MetaRig(MetaRigBase):
+    _rootPrefix = "ROOT"
+    RIGNAMEATTR = "name"
+    RIGVERSIONATTR = "rigVersion"
+
+    def addRootNode(self, node, name):
+        attrname = "_".join([self._rootPrefix, name])
+        return self.connectTo(attrname, node)
+
+    def _initMeta(self):
+        super(MetaRig, self)._initMeta()
+        self.addAttribute(name=MetaRig.RIGVERSIONATTR, value="1.0.0", Type=attrtypes.kMFnDataString)
+        self.addAttribute(name=MetaRig.RIGNAMEATTR, value="", Type=attrtypes.kMFnDataString)
+
+
+class MetaSupportSystem(MetaRigBase):
     def __init__(self, node=None, name=None, initDefaults=True):
-        super(MetaRig, self).__init__(node, name, initDefaults)
+        super(MetaSupportSystem, self).__init__(node, name, initDefaults)
 
 
-class MetaSubSystem(MetaRig):
+class MetaSubSystem(MetaRigBase):
     def __init__(self, node=None, name="", initDefaults=True):
-        super(MetaRig, self).__init__(node, name, initDefaults)
+        super(MetaSubSystem, self).__init__(node, name, initDefaults)
 
 
-class MetaFaceRig(MetaRig):
+class MetaFaceRig(MetaRigBase):
     def __init__(self, node=None, name="", initDefaults=True):
-        super(MetaRig, self).__init__(node, name, initDefaults)
+        super(MetaFaceRig, self).__init__(node, name, initDefaults)
+
+
+def findDuplicateRigInstances():
+    """Searches all MetaRigs and checks the rigName for duplicates.
+
+    :return: list of duplicate metaRig instances.
+    :rtype: list(MetaRig)
+    """
+    metaRigs = [(i, i.rigName) for i in findRigs()]
+    duplicates = general.getDuplicates([i[1] for i in metaRigs])
+    return [i[0] for i in metaRigs if i in duplicates]
+
+
+def findRigs():
+    return base.findMetaNodesByClassType(MetaRig.__name__)
