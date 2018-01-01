@@ -117,7 +117,7 @@ class MatrixConstraint(BaseConstraint):
 
     def create(self, driver, driven, skipScale=None, skipRotate=None, skipTranslate=None, maintainOffset=False):
         composename = "_".join([self.name, "wMtxCompose"])
-
+        offset = nodes.getOffsetMatrix(driver, driven)
         decompose = creation.createDecompose(composename, destination=driven,
                                              translateValues=skipTranslate,
                                              scaleValues=skipScale, rotationValues=skipRotate)
@@ -125,7 +125,7 @@ class MatrixConstraint(BaseConstraint):
         multMatrix = None
         if maintainOffset:
             offsetname = "_".join([self.name, "wMtxOffset"])
-            offset = nodes.getOffsetMatrix(driver, driven)
+
             multMatrix = creation.createMultMatrix(offsetname,
                                                    inputs=(offset, nodes.worldMatrixPlug(driver),
                                                            nodes.parentInverseMatrixPlug(driven)),
@@ -178,6 +178,7 @@ def iterIncomingConstraints(node):
     """
     fn = om2.MFnDependencyNode(node)
     if not fn.hasAttribute("constraint"):
+        print "no constraint attr"
         return
     constraintPlug = fn.findPlug("constraint", False)
     for index in range(constraintPlug.evaluateNumElements()):
@@ -252,7 +253,8 @@ def addConstraintMap(node, driven, utilities):
             plugs.connectPlugs(drivenPlug, elementP)
             continue
         attr = nodes.addAttribute(drive, "constraint", "constraint", attrtypes.kMFnMessageAttribute, isArray=True)
-        plugs.connectPlugs(drivenPlug, om2.MPlug(drive, attr.object()))
+        attrP = om2.MPlug(drive, attr.object())
+        plugs.connectPlugs(drivenPlug, attrP.elementByLogicalIndex(0))
     utilPlug = availPlug.child(1)
     # add all the utilities
     for i in iter(utilities):

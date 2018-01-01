@@ -153,6 +153,7 @@ class GraphDeserializer(list):
                     return om2.MFnDagNode(i)
                 return om2.MFnDependencyNode(i)
 
+
 def aimNodes(targetNode, driven, aimVector=None,
              upVector=None):
     for i in iter(driven):
@@ -182,3 +183,22 @@ def aimSelected(aimVector=None,
     toAim = selected[:-1]  # driven
 
     aimNodes(target, toAim, aimVector=aimVector, upVector=upVector)
+
+
+def dgIterator(*args, **kwargs):
+    """ A more ideal python DGIterator for maya, this function just wraps the iterator in a try/finally statement
+    so that we dont need to call iterator.next().
+    See maya.api.OpenMaya.MItDependencyGraph documentation for the arguments
+
+    :rtype: Generator(om2.MItDependencyGraph)
+
+    >>> mesh = asMObject("pCube1")
+    >>> for dgIter in dgIterator(mesh, om2.MFn.kSkinClusterFilter, om2.MItDependencyGraph.kUpstream):
+            dgIter.currentNode()
+    """
+    iterator = om2.MItDependencyGraph(*args, **kwargs)
+    while not iterator.isDone():
+        try:
+            yield iterator
+        finally:
+            iterator.next()

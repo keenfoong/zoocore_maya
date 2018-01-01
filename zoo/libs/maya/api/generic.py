@@ -114,3 +114,21 @@ def intToMTransformRotationOrder(rotateOrder):
     elif rotateOrder == 5:
         return om2.MTransformationMatrix.kZYX
     return -1
+
+
+def stripNamespaceFromName(name):
+    """Does what maya's om2.MNamespace.stripNamespaceFromName(name) was suppose to do.
+    Autodesk results:
+    >>> name = u'|agagaa:NewNamespace1:joint1|agagaa:NewNamespace1:joint2|agagaa:NewNamespace1:joint3
+    >>> om2.MNamespace.stripNamespaceFromName(name)
+    # 'joint3'
+    ours:
+    >>> generic.stripNamespaceFromName(name)
+    #u'|joint1|joint2|joint3'
+
+    :param name: the name to strip
+    :type name: str
+    :return: the name without the namespace while preserving the full path
+    :rtype: str
+    """
+    return name.replace(om2.MNamespace.getNamespaceFromName(name).split("|")[-1] + ":", "")
