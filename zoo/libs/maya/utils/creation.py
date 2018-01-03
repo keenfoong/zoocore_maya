@@ -257,6 +257,7 @@ def createDecompose(name, destination, translateValues, scaleValues, rotationVal
     plugs.connectVectorPlugs(mfn.findPlug("outputScale", False), destFn.findPlug("scale", False), scaleValues)
     return decompose
 
+
 def createReverse(name, inputs, outputs):
     """
 
@@ -301,6 +302,210 @@ def createReverse(name, inputs, outputs):
         plugs.connectPlugs(ouPlug.child(childIndex), outputs[childIndex])
 
     return rev
+
+
+def createSetRange(name, value, min_, max_, oldMin, oldMax, outValue=None):
+    """ Generates and connects a setRange node, input/output arguments take an iterable, possibles values are om2.MPlug,
+    float or None , if a value is None it will be skipped this is useful when two or of three you want connected or set
+    to a value but the other is left to the default state. If MPlug is passed and its a compound it'll be connected.
+
+    :param name: the new name for the set Range node
+    :type name: str
+    :param value:
+    :type value: iterable(om2.MPlug or float or None)
+    :param min_:
+    :type min_: iterable(om2.MPlug or float or None)
+    :param max_:
+    :type max_: iterable(om2.MPlug or float or None)
+    :param oldMin:
+    :type oldMin: iterable(om2.MPlug or float or None)
+    :param oldMax:
+    :type oldMax: iterable(om2.MPlug or float or None)
+    :param outValue:
+    :type outValue: iterable(om2.MPlug or float or None)
+    :return: the created setRange node
+    :rtype: om2.MObject
+    ::examples:
+        >>> one = nodes.createDagNode("one", "transform")
+        >>> two = nodes.createDagNode("two", "transform")
+        >>> end = nodes.createDagNode("end", "transform")
+
+        >>> oneFn = om2.MFnDagNode(one)
+        >>> twoFn = om2.MFnDagNode(two)
+        >>> endFn = om2.MFnDagNode(end)
+        >>> values = [oneFn.findPlug("translate", False)]
+        >>> min_ = [twoFn.findPlug("translate", False)]
+        >>> max_ = [twoFn.findPlug("translate", False)]
+        >>> oldMax = [0.0,180,360]
+        >>> oldMin = [-10,-720,-360]
+        >>> reload(creation)
+        >>> outValues = [endFn.findPlug("translateX", False), endFn.findPlug("translateY", False), None]
+        >>> pma = creation.createSetRange("test_pma", values, min_, max_, oldMin, oldMax, outValues)
+    """
+    setRange = nodes.createDGNode(name, "setRange")
+    fn = om2.MFnDependencyNode(setRange)
+    valuePlug = fn.findPlug("value", False)
+    oldMinPlug = fn.findPlug("oldMin", False)
+    oldMaxPlug = fn.findPlug("oldMax", False)
+    minPlug = fn.findPlug("min", False)
+    maxPlug = fn.findPlug("max", False)
+
+    # deal with all the inputs
+    # source list, destination plug
+    for source, destination in ((value, valuePlug), (min_, minPlug), (max_, maxPlug), (oldMin, oldMinPlug),
+                                (oldMax, oldMaxPlug)):
+        if source is None:
+            continue
+        for index, inner in enumerate(source):
+            if inner is None:
+                continue
+            if isinstance(inner, om2.MPlug):
+                if inner.isCompound:
+                    plugs.connectPlugs(inner, destination)
+                    break
+                child = destination.child(index)
+                plugs.connectPlugs(inner, child)
+                continue
+            child = destination.child(index)
+            plugs.setPlugValue(child, inner)
+    if outValue is None:
+        return setRange
+    outPlug = fn.findPlug("outValue", False)
+    # now the outputs
+    for index, out in enumerate(outValue):
+        if out is None:
+            continue
+        if isinstance(out, om2.MPlug):
+            if out.isCompound:
+                plugs.connectPlugs(outPlug, out)
+                break
+            child = outPlug.child(index)
+            plugs.connectPlugs(child, out)
+            continue
+        child = outPlug.child(index)
+        # not a plug must be a plug value
+        plugs.setPlugValue(child, out)
+    return setRange
+
+
+def createPlusMinusAverage1D(name, input, output=None, operation=1):
+    """
+    :param name: the plus minus average node name
+    :type name: str
+    :param input:
+    :type input: iterable(plug or float)
+    :param output:
+    :type output: iterable(plug)
+    :return: The plus minus average MObject
+    :rtype: om2.MObject
+    ::examples:
+        >>> one = nodes.createDagNode("one", "transform")
+        >>> two = nodes.createDagNode("two", "transform")
+        >>> end = nodes.createDagNode("end", "transform")
+
+        >>> oneFn = om2.MFnDagNode(one)
+        >>> twoFn = om2.MFnDagNode(two)
+        >>> endFn = om2.MFnDagNode(end)
+        >>> inputs = [oneFn.findPlug("translateX", False), twoFn.findPlug("translateX", False)]
+        >>> outputs = [endFn.findPlug("translateX", False)]
+        >>> pma = creation.createPlusMinusAverage1D("test_pma", inputs, outputs)
+        # Result: <OpenMaya.MObject object at 0x000002AECB23AE50> #
+    """
+    pma = nodes.createDGNode(name, "plusMinusAverage")
+    fn = om2.MFnDependencyNode(pma)
+    inPlug = fn.findPlug("input1D", False)
+    fn.findPlug("operation", False).setInt(operation)
+    for i, p in enumerate(input):
+        child = plugs.nextAvailableElementPlug(inPlug)
+        if isinstance(p, om2.MPlug):
+            plugs.connectPlugs(p, child)
+            continue
+
+        plugs.setPlugValue(child, p)
+
+    if output is not None:
+        ouPlug = fn.findPlug("output1D", False)
+        for out in output:
+            plugs.connectPlugs(ouPlug, out)
+    return pma
+
+
+def createPlusMinusAverage2D(name, input, output=None, operation=1):
+    """
+    :param name: the plus minus average node name
+    :type name: str
+    :param input:
+    :type input: iterable(plug or float)
+    :param output:
+    :type output: iterable(plug)
+    :return: The plus minus average MObject
+    :rtype: om2.MObject
+    """
+    pma = nodes.createDGNode(name, "plusMinusAverage")
+    fn = om2.MFnDependencyNode(pma)
+    inPlug = fn.findPlug("input2D", False)
+    fn.findPlug("operation", False).setInt(operation)
+    for i, p in enumerate(input):
+        if p is None:
+            continue
+        child = plugs.nextAvailableElementPlug(inPlug)
+        if isinstance(p, om2.MPlug):
+            plugs.connectPlugs(p, child)
+            continue
+        plugs.setPlugValue(child, p)
+
+    if output is not None:
+        ouPlug = fn.findPlug("output2D", False)
+        for index, out in enumerate(output):
+            if out is None:
+                continue
+            plugs.connectPlugs(ouPlug, out)
+    return pma
+
+
+def createPlusMinusAverage3D(name, input, output=None, operation=1):
+    """
+    :param name: the plus minus average node name
+    :type name: str
+    :param input:
+    :type input: iterable(plug or float)
+    :param output:
+    :type output: iterable(plug)
+    :return: The plus minus average MObject
+    :rtype: om2.MObject
+    ::examples:
+        >>> one = nodes.createDagNode("one", "transform")
+        >>> two = nodes.createDagNode("two", "transform")
+        >>> end = nodes.createDagNode("end", "transform")
+
+        >>> oneFn = om2.MFnDagNode(one)
+        >>> twoFn = om2.MFnDagNode(two)
+        >>> endFn = om2.MFnDagNode(end)
+        >>> inputs = [oneFn.findPlug("translate", False), twoFn.findPlug("translate", False)]
+        >>> outputs = [endFn.findPlug("translate", False)]
+        >>> pma = creation.createPlusMinusAverage3D("test_pma", inputs, outputs)
+        # Result: <OpenMaya.MObject object at 0x000002AECB23AE50> #
+    """
+    pma = nodes.createDGNode(name, "plusMinusAverage")
+    fn = om2.MFnDependencyNode(pma)
+    inPlug = fn.findPlug("input3D", False)
+    fn.findPlug("operation", False).setInt(operation)
+    for i, p in enumerate(input):
+        if p is None:
+            continue
+        child = plugs.nextAvailableElementPlug(inPlug)
+        if isinstance(p, om2.MPlug):
+            plugs.connectPlugs(p, child)
+            continue
+        plugs.setPlugValue(child, p)
+
+    if output is not None:
+        ouPlug = fn.findPlug("output3D", False)
+        for index, out in enumerate(output):
+            if out is None:
+                continue
+            plugs.connectPlugs(ouPlug, out)
+    return pma
 
 
 def graphSerialize(graphNodes):
