@@ -22,12 +22,11 @@ def getCurveData(shape, space=om2.MSpace.kObject):
     data = nodes.getNodeColourData(shape.node())
     curve = om2.MFnNurbsCurve(shape)
     # so we can deserialize in world which maya does in to steps
-    if space == om2.MSpace.kWorld:
-        data["matrix"] = list(nodes.getWorldMatrix(curve.object()))
     data.update({"knots": tuple(curve.knots()),
                  "cvs": map(tuple, curve.cvPositions(space)),
                  "degree": curve.degree,
-                 "form": curve.form})
+                 "form": curve.form,
+                 "matrix": tuple(nodes.getWorldMatrix(curve.object()))})
     return data
 
 
@@ -41,18 +40,25 @@ def createCurveShape(parent, data):
     :return: the parent node
     :rtype: MObject
     """
+    parentInverseMatrix = om2.MMatrix()
     if parent is None:
         parent = om2.MObject.kNullObj
+    elif parent != om2.MObject.kNullObj:
+        parentInverseMatrix = nodes.getWorldInverseMatrix(parent)
+
     newCurve = om2.MFnNurbsCurve()
-    cvData = []
     for shapeName, curveData in iter(data.items()):
         cvs = om2.MPointArray(curveData["cvs"])  # om2 allows a list of lists which converts to om2.Point per element
         knots = curveData["knots"]
         degree = curveData["degree"]
         form = curveData["form"]
         enabled = curveData["overrideEnabled"]
+        matrix = curveData.get("matrix")
+        if matrix is not None:
+            mat = om2.MMatrix(matrix)
+            for i in range(len(cvs)):
+                cvs[i] *= mat * parentInverseMatrix
         shape = newCurve.create(cvs, knots, degree, form, False, False, parent)
-        mat = curveData.get("matrix")
         if parent == om2.MObject.kNullObj and shape.apiType() == om2.MFn.kTransform:
             parent = shape
         if enabled:
@@ -60,18 +66,6 @@ def createCurveShape(parent, data):
                                int(curveData["overrideEnabled"]))
             colours = curveData["overrideColorRGB"]
             nodes.setNodeColour(newCurve.object(), colours)
-        if mat:
-            cvData.append((newCurve.getPath(), mat, cvs))
-    # apparently must use object space to create and calling setCVPosition with the forloop causing an maya error
-    # this could be because maya has yet to refresh meaning the MObject is invalid , hence the need to loop
-    # back over and multiple the cvs by the worldMatrix
-    for p, mat, cvs in cvData:
-        mat = om2.MMatrix(mat)
-        newCurve.setObject(p)
-        for i in range(len(cvs)):
-            cvs[i] *= mat
-        newCurve.setCVPositions(cvs, om2.MSpace.kWorld)
-        newCurve.updateCurve()
     return parent
 
 

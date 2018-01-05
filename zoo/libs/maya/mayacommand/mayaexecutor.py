@@ -7,6 +7,7 @@ from maya import cmds
 from maya.api import OpenMaya as om2
 from zoo.libs.command import base
 from zoo.libs.command import errors
+from zoo.libs.maya.utils import general
 
 
 class MayaExecutor(base.ExecutorBase):
@@ -16,6 +17,7 @@ class MayaExecutor(base.ExecutorBase):
     def __init__(self):
         super(MayaExecutor, self).__init__()
         om2._COMMANDEXECUTOR = self
+        general.loadPlugin("zooundo.py")
 
     def execute(self, commandName=None, **kwargs):
         """Function to execute Zoo commands which lightly wrap maya MPXCommands.

@@ -1,3 +1,5 @@
+import logging
+
 from maya.api import OpenMaya as om2
 from maya import cmds
 
@@ -6,6 +8,14 @@ from zoo.libs.maya.api import plugs
 from zoo.libs.maya.api import generic
 from zoo.libs.maya.api import attrtypes
 from zoo.libs.maya.utils import creation
+
+logger = logging.getLogger(__name__)
+PARENTCONSTRAINT_TYPE = 0
+SCALECONSTRAINT_TYPE = 1
+POINTCONSTRAINT_TYPE = 2
+ORIENTCONSTRAINT_TYPE = 3
+AIMCONSTRAINT_TYPE = 4
+MATRIX_TYPE = 5
 
 
 class BaseConstraint(object):
@@ -58,6 +68,7 @@ class ParentConstraint(BaseConstraint):
                                       skipTranslate=skipTranslate or [],
                                       weight=1.0, maintainOffset=maintainOffset)
         self.node = om2.MObjectHandle(nodes.asMObject(const[0]))
+        addConstraintMap(driver, (driven,), (self.node.object(),))
         return self.node.object()
 
     def addTarget(self, driver):
@@ -134,6 +145,7 @@ class MatrixConstraint(BaseConstraint):
         else:
             plugs.connectPlugs(nodes.worldMatrixPlug(driver), decomposeFn.findPlug("inputMatrix", False))
         self.node = om2.MObjectHandle(decompose)
+        addConstraintMap(driver, (driven,), (decompose, multMatrix))
         return decompose, multMatrix
 
 
@@ -178,7 +190,7 @@ def iterIncomingConstraints(node):
     """
     fn = om2.MFnDependencyNode(node)
     if not fn.hasAttribute("constraint"):
-        print "no constraint attr"
+        logger.debug("No constraint attr on", fn.name())
         return
     constraintPlug = fn.findPlug("constraint", False)
     for index in range(constraintPlug.evaluateNumElements()):
@@ -197,7 +209,8 @@ def serializeIncomingConstraints(node):
     for driver, utilties in iterIncomingConstraints(node):
         driverName = nodes.nameFromMObject(driver)
         results.append({"utilities": [nodes.serializeNode(i) for i in utilties],
-                       "driver": driverName})
+                        "driver": driverName})
+
 
 def iterConstraints(node):
     """Generator function that loops over the attached constraints, this is done

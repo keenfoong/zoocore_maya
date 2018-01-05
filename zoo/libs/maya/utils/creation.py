@@ -157,17 +157,18 @@ def conditionVector(firstTerm, secondTerm, colorIfTrue, colorIfFalse, operation,
     :rtype: om2.MObject
     """
     condNode = om2.MFnDependencyNode(nodes.createDGNode(name, "condition"))
-    if isinstance(firstTerm, float):
-        plugs.setPlugValue(condNode.findPlug("firstTerm", False), firstTerm)
-    else:
-        plugs.connectPlugs(firstTerm, condNode.findPlug("firstTerm", False))
     if isinstance(operation, int):
         plugs.setPlugValue(condNode.findPlug("operation", False), operation)
     else:
         plugs.connectPlugs(operation, condNode.findPlug("operation", False))
 
+    if isinstance(firstTerm, float):
+        plugs.setPlugValue(condNode.findPlug("firstTerm", False), firstTerm)
+    else:
+        plugs.connectPlugs(firstTerm, condNode.findPlug("firstTerm", False))
+
     if isinstance(secondTerm, float):
-        plugs.setPlugValue(condNode.findPlug("secondTerm", False), firstTerm)
+        plugs.setPlugValue(condNode.findPlug("secondTerm", False), secondTerm)
     else:
         plugs.connectPlugs(secondTerm, condNode.findPlug("secondTerm", False))
     if isinstance(colorIfTrue, om2.MPlug):
@@ -178,8 +179,13 @@ def conditionVector(firstTerm, secondTerm, colorIfTrue, colorIfFalse, operation,
         color = condNode.findPlug("colorIfTrue", False)
         # expecting seq of plugs
         for i, p in enumerate(colorIfTrue):
+            if p is None:
+                continue
             child = color.child(i)
-            plugs.connectPlugs(p, child)
+            if isinstance(p, om2.MPlug):
+                plugs.connectPlugs(p, child)
+                continue
+            plugs.setPlugValue(child, p)
     if isinstance(colorIfFalse, om2.MPlug):
         plugs.connectPlugs(colorIfFalse, condNode.findPlug("colorIfFalse", False))
     elif isinstance(colorIfFalse, om2.MVector):
@@ -188,8 +194,13 @@ def conditionVector(firstTerm, secondTerm, colorIfTrue, colorIfFalse, operation,
         color = condNode.findPlug("colorIfFalse", False)
         # expecting seq of plugs
         for i, p in enumerate(colorIfFalse):
+            if p is None:
+                continue
             child = color.child(i)
-            plugs.connectPlugs(p, child)
+            if isinstance(p, om2.MPlug):
+                plugs.connectPlugs(p, child)
+                continue
+            plugs.setPlugValue(child, p)
     return condNode.object()
 
 
@@ -388,12 +399,12 @@ def createSetRange(name, value, min_, max_, oldMin, oldMax, outValue=None):
     return setRange
 
 
-def createPlusMinusAverage1D(name, input, output=None, operation=1):
+def createPlusMinusAverage1D(name, inputs, output=None, operation=1):
     """
     :param name: the plus minus average node name
     :type name: str
-    :param input:
-    :type input: iterable(plug or float)
+    :param inputs:
+    :type inputs: iterable(plug or float)
     :param output:
     :type output: iterable(plug)
     :return: The plus minus average MObject
@@ -415,7 +426,9 @@ def createPlusMinusAverage1D(name, input, output=None, operation=1):
     fn = om2.MFnDependencyNode(pma)
     inPlug = fn.findPlug("input1D", False)
     fn.findPlug("operation", False).setInt(operation)
-    for i, p in enumerate(input):
+    for i, p in enumerate(inputs):
+        if p is None:
+            continue
         child = plugs.nextAvailableElementPlug(inPlug)
         if isinstance(p, om2.MPlug):
             plugs.connectPlugs(p, child)
@@ -430,12 +443,12 @@ def createPlusMinusAverage1D(name, input, output=None, operation=1):
     return pma
 
 
-def createPlusMinusAverage2D(name, input, output=None, operation=1):
+def createPlusMinusAverage2D(name, inputs, output=None, operation=1):
     """
     :param name: the plus minus average node name
     :type name: str
-    :param input:
-    :type input: iterable(plug or float)
+    :param inputs:
+    :type inputs: iterable(plug or float)
     :param output:
     :type output: iterable(plug)
     :return: The plus minus average MObject
@@ -445,7 +458,7 @@ def createPlusMinusAverage2D(name, input, output=None, operation=1):
     fn = om2.MFnDependencyNode(pma)
     inPlug = fn.findPlug("input2D", False)
     fn.findPlug("operation", False).setInt(operation)
-    for i, p in enumerate(input):
+    for i, p in enumerate(inputs):
         if p is None:
             continue
         child = plugs.nextAvailableElementPlug(inPlug)
@@ -463,12 +476,12 @@ def createPlusMinusAverage2D(name, input, output=None, operation=1):
     return pma
 
 
-def createPlusMinusAverage3D(name, input, output=None, operation=1):
+def createPlusMinusAverage3D(name, inputs, output=None, operation=1):
     """
     :param name: the plus minus average node name
     :type name: str
-    :param input:
-    :type input: iterable(plug or float)
+    :param inputs:
+    :type inputs: iterable(plug or float)
     :param output:
     :type output: iterable(plug)
     :return: The plus minus average MObject
@@ -490,7 +503,7 @@ def createPlusMinusAverage3D(name, input, output=None, operation=1):
     fn = om2.MFnDependencyNode(pma)
     inPlug = fn.findPlug("input3D", False)
     fn.findPlug("operation", False).setInt(operation)
-    for i, p in enumerate(input):
+    for i, p in enumerate(inputs):
         if p is None:
             continue
         child = plugs.nextAvailableElementPlug(inPlug)
@@ -513,107 +526,3 @@ def graphSerialize(graphNodes):
     for i in iter(graphNodes):
         data.append(nodes.serializeNode(i))
     return data
-
-
-def graphdeserialize(data, inputs):
-    """
-    :param data:
-    :type data: list
-    :param inputs:
-    :type inputs: dict{str: plug instance}
-    :return:
-    :rtype:
-    """
-    for nodeData in iter(data):
-        pass
-
-
-"""
-
-def deserializeNode(data):
-    parent = data.get("parent")
-    name = om2.MNamespace.stripNamespaceFromName(data["name"]).split("|")[-1]
-    nodeType = data["type"]
-    if not parent:
-        newNode = nodes.createDGNode(name, nodeType)
-        dep = om2.MFnDependencyNode(newNode)
-    else:
-        newNode = nodes.createDagNode(name, nodeType)
-        dep = om2.MFnDagNode(newNode)
-    attributes = data.get("attributes")
-    if attributes:
-        for name, attrData in iter(attributes.items()):
-            if not attrData.get("isDynamic"):
-                plugs.setAttr(dep.findPlug(name, False), attrData["value"])
-                continue
-            newAttr = nodes.addAttribute(dep.object(), name, name, attrData["type"])
-            if newAttr is None:
-                continue
-            newAttr.keyable = attrData["keyable"]
-            newAttr.channelBox = attrData["channelBox"]
-            currentPlug = dep.findPlug(newAttr.object(), False)
-            currentPlug.isLocked = attrData["locked"]
-            max = attrData["max"]
-            min = attrData["min"]
-            softMax = attrData["softMax"]
-            softMin = attrData["softMin"]
-            default = attrData["default"]
-            plugs.setMax(currentPlug, max)
-            plugs.setMin(currentPlug, min)
-            plugs.setMin(currentPlug, softMax)
-            plugs.setMin(currentPlug, softMin)
-            # if newAttr.hasFn(om2.MFn.kEnumAttribute):
-                # if default != plugs.plugDefault(currentPlug):
-                #     plugs.setPlugDefault(currentPlug, default)
-    return newNode
-
-
-def deserializeContainer(containerName, data):
-    children = data["children"]
-    newNodes = {}
-    containerName = data["name"]
-    for nodeName, nodeData in iter(data.items()):
-        name = nodeData["name"]
-        if name in newNodes:
-            newNode = newNodes[name]
-        else:
-            newNode = deserializeNode(nodeData)
-            newNodes[name] = newNode
-        parent = nodeData.get("parent")
-        if parent:
-            if parent == containerName:
-                nodes.setParent(newNode, container, maintainOffset=True)
-            elif parent in newNodes:
-                nodes.setParent(newNode, newNodes[parent], maintainOffset=True)
-            else:
-                parentdata = children.get(parent)
-                if parentdata:
-                    newParent = deserializeNode(parentdata)
-                    nodes.setParent(newNode, newParent, maintainOffset=True)
-                    newNodes[parent] = newParent
-        for attrName, attrData in nodeData["connections"]:
-            connections = attrData.get("connections")
-            if connections:
-                for con in iter(connections):
-                    sourceNode = newNodes.get(con[0])
-                    if not sourceNode:
-                        sourceNodeData = children.get(con[0])
-                        if not sourceNodeData:
-                            try:
-                                sourceNode = nodes.asMObject(con[0])
-                            except RuntimeError:
-                                continue
-                        else:
-                            sourceNode = deserializeNode(sourceNodeData)
-                        newNodes[con[0]] = sourceNode
-                    destinationNodeName = nodes.nameFromMObject(newNode)
-                    sourceNodeName = nodes.nameFromMObject(sourceNode)
-                    sourcename = ".".join([sourceNodeName, con[1]])
-                    destName = ".".join([destinationNodeName, con[0]])
-                    destPlug = plugs.asMPlug(destName)
-                    sourcePlug = plugs.asMPlug(sourcename)
-                    plugs.connectPlugs(sourcePlug, destPlug)
-
-    return container
-
-"""

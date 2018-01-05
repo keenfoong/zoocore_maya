@@ -250,22 +250,26 @@ def serializePlug(plug):
     """
     data = {}
     if plug.isDynamic:
-        data.update({"isDynamic": True, "default": plugDefault(plug), "min": getPlugMin(plug), "max": getPlugMax(plug),
-                     "softMin": getSoftMin(plug), "softMax": getSoftMax(plug),
-                     "value": getPythonTypeFromPlugValue(plug),
-                     "name": plug.partialName(includeNonMandatoryIndices=True, useLongNames=True,
+        data.update({"name": plug.partialName(includeNonMandatoryIndices=True, useLongNames=True,
                                               includeInstancedIndices=True),
                      "channelBox": plug.isChannelBox, "keyable": plug.isKeyable,
-                     "locked": plug.isLocked, "type": plugType(plug), "isArray": plug.isArray}
-                    )
-        if plugType(plug) == attrtypes.kMFnkEnumAttribute:
-            data["enums"] = enumNames(plug)
+                     "isArray": plug.isArray})
+        if not plug.isCompound:
+            data.update({"isDynamic": True, "default": plugDefault(plug), "min": getPlugMin(plug), "max": getPlugMax(plug),
+                         "softMin": getSoftMin(plug), "softMax": getSoftMax(plug),
+                         "value": getPythonTypeFromPlugValue(plug)
+                         }
+                        )
+            if plugType(plug) == attrtypes.kMFnkEnumAttribute:
+                data["enums"] = enumNames(plug)
+        else:
+            data["children"] = [serializePlug(plug.child(i)) for i in range(plug.numChildren())]
     else:
         # for the time being we only store attribute data that has the default value changed
         if not plug.isDefaultValue():
             attrType = plugType(plug)
             data.update({"isDynamic": False, "channelBox": plug.isChannelBox, "keyable": plug.isKeyable,
-                         "locked": plug.isLocked, "type": attrType, "value": getPythonTypeFromPlugValue(plug),
+                         "locked": plug.isLocked, "Type": attrType, "value": getPythonTypeFromPlugValue(plug),
                          "name": plug.partialName(includeInstancedIndices=True, useLongNames=True,
                                                   includeNonMandatoryIndices=True), "isArray": plug.isArray}
                         )
@@ -700,6 +704,63 @@ def getTypedValue(plug):
     return None, None
 
 
+def setPlugInfoFromDict(plug, **kwargs):
+    """Sets the standard plug settings.
+
+    :param plug: The Plug to change
+    :type plug: om2.MPlug
+    :param kwargs: settings currently include, default, min, max, softMin, softMin, value, Type, channelBox, keyable,
+    locked.
+    :type kwargs: dict
+    ::examples:
+        >>> data = {
+            "Type": 5, # attrtypes.kType
+            "channelBox": true,
+            "default": 1.0,
+            "isDynamic": true,
+            "keyable": true,
+            "locked": false,
+            "max": 99999,
+            "min": 0.0,
+            "name": "scale",
+            "softMax": None,
+            "softMin": None,
+            "value": 1.0
+          }
+        >>> somePLug = om2.MPlug()
+        >>> setPlugInfoFromDict(somePlug, **data)
+
+    """
+    default = kwargs.get("default")
+    min = kwargs.get("min")
+    max = kwargs.get("max")
+    softMin = kwargs.get("softMin")
+    softMax = kwargs.get("softMax")
+    value = kwargs.get("value")
+    Type = kwargs.get("Type")
+    if default is not None and Type is not None:
+        if Type == attrtypes.kMFnDataString:
+            default = om2.MFnStringData().create(default)
+        elif Type == attrtypes.kMFnDataMatrix:
+            default = om2.MFnMatrixData().create(om2.MMatrix(default))
+        elif Type == attrtypes.kMFnUnitAttributeAngle:
+            default = om2.MAngle(default, om2.MAngle.kDegrees)
+            value = om2.MAngle(value, om2.MAngle.kDegrees)
+        setPlugDefault(plug, default)
+    if value is not None and not plug.attribute().hasFn(om2.MFn.kMessageAttribute):
+        setPlugValue(plug, value)
+    if min is not None:
+        setMin(plug, min)
+    if max is not None:
+        setMax(plug, max)
+    if softMin is not None:
+        setSoftMin(plug.object(), softMin)
+    if softMax is not None:
+        setSoftMax(plug.object(), softMax)
+    plug.isChannelBox = kwargs.get("channelBox", False)
+    plug.isKeyable = kwargs.get("keyable", False)
+    plug.isLocked = kwargs.get("locked", False)
+
 def setPlugValue(plug, value):
     """
     Sets the given plug's value to the passed in value.
@@ -946,7 +1007,7 @@ def nextAvailableElementPlug(arrayPlug):
     count = arrayPlug.evaluateNumElements()
     if count == 0:
         return arrayPlug.elementByLogicalIndex(0)
-    for i in xrange(count):
+    for i in xrange(1, count):
         availPlug = arrayPlug.elementByPhysicalIndex(i)
         if availPlug.isSource:
             continue

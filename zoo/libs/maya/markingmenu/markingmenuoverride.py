@@ -2,7 +2,6 @@ import re
 
 from maya import cmds, mel
 
-from zoo.libs.maya import triggered
 from zoo.libs.utils import path
 from zoo.libs.utils import zlogging
 
@@ -15,9 +14,14 @@ def setup():
     """
     try:
         dagMenuScriptpath = path.findFirstInEnv('dagMenuProc.mel', 'MAYA_SCRIPT_PATH')
-        polyCutUVOptionsPopupScriptpath = path.findFirstInEnv('polyCutUVOptionsPopup.mel', 'MAYA_SCRIPT_PATH')
+
     except:
         logger.warning("Cannot find the dagMenuProc.mel script - aborting auto-override!")
+        return
+    try:
+        polyCutUVOptionsPopupScriptpath = path.findFirstInEnv('polyCutUVOptionsPopup.mel', 'MAYA_SCRIPT_PATH')
+    except:
+        logger.warning("Cannot find the polyCutUVOptionsPopup.mel script - aborting auto-override!")
         return
     tmpScriptpath = path.Path(cmds.internalVar(usd=True)) / 'zooDagMenuProc_override.mel'
 
@@ -27,7 +31,7 @@ def setup():
         fStream.write('\tmenuItem -d 1;\n')
         fStream.write('\tpython("from zoo.libs.maya.markingmenu import markingmenu_validate");\n')
         fStream.write(
-            """\tint $killState = python("markingmenu_validate.validateAndBuild('{}', '{}')");\n""".format(parentVarStr,
+            """\tint $killState = python("markingmenu_validate.validateAndBuild('"+{}+"', '"+{}+"')");\n""".format(parentVarStr,
                                                                                                            objectVarStr))
         fStream.write('\tif($killState) return;\n')
         fStream.write('/// END ZOO MODS ####################\n\n')
@@ -65,6 +69,3 @@ def setup():
         mel.eval('source "{}";'.format(tmpScriptpath))
     # Now delete the tmp script - we don't want the "mess"
     tmpScriptpath.delete()
-
-    # The dag menu customizations are centered around triggered, so load it up!
-    triggered.Load()

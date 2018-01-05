@@ -7,7 +7,6 @@ as fast as possible. Graph Traversal methods works by walking the dependency gra
 import inspect
 import os
 from functools import wraps
-import uuid
 import re
 
 from maya.api import OpenMaya as om2
@@ -23,8 +22,6 @@ logger = zlogging.zooLogger
 
 MCLASS_ATTR_NAME = "mClass"
 MVERSION_ATTR_NAME = "mVersion"
-MROOT_ATTR_NAME = "mRoot"
-MUUID_ATTR_NAME = "mUuid"
 MPARENT_ATTR_NAME = "mMetaParent"
 MCHILDREN_ATTR_NAME = "mMetaChildren"
 
@@ -53,15 +50,7 @@ def findSceneRoots():
     :return:
     :rtype: list()
     """
-    roots = []
-    for meta in iterSceneMetaNodes():
-        dep = om2.MFnDependencyNode(meta.mobject())
-        try:
-            if dep.findPlug(MROOT_ATTR_NAME, False).asBool():
-                roots.append(MetaBase(node=meta.mobject()))
-        except RuntimeError:
-            continue
-    return roots
+    return [meta for meta in iterSceneMetaNodes() if not meta.metaParent()]
 
 
 def filterSceneByAttributeValues(attributeNames, filter):
@@ -117,6 +106,8 @@ def isMetaNode(node):
         return True
     dep = om2.MFnDependencyNode(node)
     if dep.hasAttribute(MCLASS_ATTR_NAME):
+        if not MetaRegistry.types:
+            MetaRegistry()
         return MetaRegistry.isInRegistry(dep.findPlug(MCLASS_ATTR_NAME, False).asString())
     return False
 
@@ -142,7 +133,7 @@ def getUpstreamMetaNodeFromNode(node):
     return None, None
 
 
-def getConnectedMetaNodes(mObj):
+def getConnectedMetaNodes(mObj, direction=om2.MItDependencyGraph.kDownstream):
     """Returns all the downStream connected meta nodes of 'mObj'
 
     :param mObj: The meta node MObject to search
@@ -151,8 +142,10 @@ def getConnectedMetaNodes(mObj):
     :rtype: list(MetaBase)
     """
     mNodes = []
-    for dest, source in nodes.iterConnections(mObj, False, True):
-        node = source.node()
+    useSource = direction == om2.MItDependencyGraph.kDownstream
+    usedestination = direction == om2.MItDependencyGraph.kUpstream
+    for dest, endPoint in nodes.iterConnections(mObj, useSource, usedestination):
+        node = endPoint.node()
         if isMetaNode(node):
             mNodes.append(MetaBase(node))
     return mNodes
@@ -166,9 +159,12 @@ class MetaRegistry(object):
 
     def __init__(self):
         try:
-            self.registryByEnv(MetaRegistry.metaEnv)
+            self.reload()
         except ValueError:
             logger.error("Failed to registry environment", exc_info=True)
+
+    def reload(self):
+        self.registryByEnv(MetaRegistry.metaEnv)
 
     @classmethod
     def isInRegistry(cls, typeName):
@@ -260,7 +256,7 @@ class MetaRegistry(object):
         :param classObj: the metaClass to registry
         :type classObj: Plugin
         """
-        if issubclass(classObj, MetaBase) and classObj.__name__ not in cls.types:
+        if issubclass(classObj, MetaBase) or isinstance(classObj, MetaBase) and classObj.__name__ not in cls.types:
             logger.debug("registering metaClass -> {}".format(classObj.__name__))
             cls.types[classObj.__name__] = classObj
 
@@ -277,6 +273,9 @@ class MetaFactory(type):
         if args:
             node = args[0]
         # if the user doesn't pass a node it means they want to create it
+        reg = MetaRegistry
+        if cls.__name__ not in reg.types:
+            reg.registerMetaClass(cls)
         if not node:
             return type.__call__(cls, *args, **kwargs)
         classType = MetaBase.classNameFromPlug(node)
@@ -309,8 +308,8 @@ class MetaBase(object):
         dep = om2.MFnDependencyNode(node)
         try:
             return dep.findPlug(MCLASS_ATTR_NAME, False).asString()
-        except RuntimeError:
-            return ""
+        except RuntimeError as er:
+            return er
 
     def __init__(self, node=None, name=None, initDefaults=True):
         self._createInScene(node, name)
@@ -323,7 +322,7 @@ class MetaBase(object):
     def _createInScene(self, node, name):
         if node is None:
             name = "_".join([name or self.__class__.__name__, "meta"])
-            node= nodes.createDGNode(name, "network")
+            node = nodes.createDGNode(name, "network")
         self._handle = om2.MObjectHandle(node)
         if node.hasFn(om2.MFn.kDagNode):
             self._mfn = om2.MFnDagNode(node)
@@ -335,8 +334,6 @@ class MetaBase(object):
         """
         self.addAttribute(MCLASS_ATTR_NAME, self.__class__.__name__, attrtypes.kMFnDataString)
         self.addAttribute(MVERSION_ATTR_NAME, "1.0.0", attrtypes.kMFnDataString)
-        self.addAttribute(MROOT_ATTR_NAME, False, attrtypes.kMFnNumericBoolean)
-        self.addAttribute(MUUID_ATTR_NAME, str(uuid.uuid4()), attrtypes.kMFnDataString)
         self.addAttribute(MPARENT_ATTR_NAME, None, attrtypes.kMFnMessageAttribute)
         self.addAttribute(MCHILDREN_ATTR_NAME, None, attrtypes.kMFnMessageAttribute)
 
@@ -762,7 +759,6 @@ class MetaBase(object):
         
         :param parent: The meta node to add as the parent of this meta node 
         :type parent: MetaBase
-        :todo: change the method name to setParent since we should only allow one parent
         """
         metaParent = self.metaParent()
         if metaParent is not None or metaParent == parent:

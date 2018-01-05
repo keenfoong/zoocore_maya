@@ -723,7 +723,7 @@ def addProxyAttribute(node, sourcePlug, longName, shortName, attrType=attrtypes.
     return attr1
 
 
-def addCompoundAttribute(node, longName, shortName, attrMap, isArray=False):
+def addCompoundAttribute(node, longName, shortName, attrMap, isArray=False, **kwargs):
     """
 
     :param node: the node to add the compound attribute too.
@@ -737,20 +737,29 @@ def addCompoundAttribute(node, longName, shortName, attrMap, isArray=False):
     :return: the MObject attached to the compound attribute
     :rtype: om2.MObject
     ::example:
-    >>>attrMap = [{"name":"something", "type": attrtypes.kMFnMessageAttribute, "isArray": False}]
+    >>>attrMap = [{"name":"something", "Type": attrtypes.kMFnMessageAttribute, "isArray": False}]
     >>> print attrMap
     # result <OpenMaya.MObject object at 0x00000000678CA790> #
     """
     compound = om2.MFnCompoundAttribute()
     compObj = compound.create(longName, shortName)
     compound.array = isArray
+    children = []
     for attrData in attrMap:
-        child = addAttribute(node, shortName=attrData["name"], longName=attrData["name"], attrType=attrData["type"],
-                             isArray=attrData["isArray"], apply=False)
-        compound.addChild(child.object())
+        child = addAttribute(node, shortName=attrData["name"], longName=attrData["name"], attrType=attrData["Type"],
+                             apply=False, **attrData)
+
+        attrObj = child.object()
+        compound.addChild(attrObj)
+        children.append(om2.MPlug(node, attrObj))
+
     mod = om2.MDGModifier()
     mod.addAttribute(node, compObj)
     mod.doIt()
+    plugs.setPlugInfoFromDict(om2.MPlug(node, compObj), **kwargs)
+    for data, plug in zip(attrMap, children):
+        plugs.setPlugInfoFromDict(plug, **data)
+
     return compObj
 
 
@@ -783,6 +792,7 @@ def addAttributesFromList(node, data):
         default = attrData["default"]
         value = attrData["value"]
         name = attrData["name"]
+
         if Type == attrtypes.kMFnDataString:
             default = om2.MFnStringData().create(default)
         elif Type == attrtypes.kMFnDataMatrix:
@@ -807,7 +817,7 @@ def addAttributesFromList(node, data):
     return created
 
 
-def addAttribute(node, longName, shortName, attrType=attrtypes.kMFnNumericDouble, isArray=False, apply=True):
+def addAttribute(node, longName, shortName, attrType=attrtypes.kMFnNumericDouble, isArray=False, apply=True, **kwargs):
     """This function uses the api to create attributes on the given node, currently WIP but currently works for
     string,int, float, bool, message, matrix. if the attribute exists a ValueError will be raised.
 
@@ -946,6 +956,9 @@ def addAttribute(node, longName, shortName, attrType=attrtypes.kMFnNumericDouble
         mod = om2.MDGModifier()
         mod.addAttribute(node, aobj)
         mod.doIt()
+        plug = om2.MPlug(node, aobj)
+        kwargs["Type"] = attrType
+        plugs.setPlugInfoFromDict(plug, **kwargs)
     return attr
 
 
@@ -1291,4 +1304,3 @@ def matchTransformSingle(targetPath, source, translation=True, rotation=True, sc
             pos += srcPivot - nodePivot
         fn.setTranslation(pos, space)
     return True
-
