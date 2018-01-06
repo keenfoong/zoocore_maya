@@ -174,8 +174,8 @@ def addConstraintAttribute(node):
     mfn = om2.MFnDependencyNode(node)
     if mfn.hasAttribute("constraints"):
         return mfn.findPlug("constraints", False)
-    attrMap = [{"name": "driven", "type": attrtypes.kMFnMessageAttribute, "isArray": False},
-               {"name": "utilities", "type": attrtypes.kMFnMessageAttribute, "isArray": False}]
+    attrMap = [{"name": "driven", "Type": attrtypes.kMFnMessageAttribute, "isArray": False},
+               {"name": "utilities", "Type": attrtypes.kMFnMessageAttribute, "isArray": False}]
 
     return om2.MPlug(node, nodes.addCompoundAttribute(node, "constraints", "constraints", attrMap,
                                                       isArray=True))

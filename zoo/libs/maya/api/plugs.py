@@ -7,7 +7,7 @@ AXIS = ("X", "Y", "Z")
 
 
 def asMPlug(name):
-    """returns the MPlug instance for the given name
+    """Returns the MPlug instance for the given name
 
     :param name: The mobject to convert to MPlug
     :rtype name: str
@@ -114,6 +114,29 @@ def disconnectPlug(plug, source=True, destination=True):
     return True
 
 
+def removeElementPlug(plug, elementNumber, mod=None, apply=False):
+    """Functional wrapper for removing a element plug(multiinstance)
+
+    :param plug: The plug array object
+    :type plug: om2.MPlug
+    :param elementNumber: the element number
+    :type elementNumber: int
+    :param mod: If None then a om2.MDGModifier object will be created and returned else the one thats passed will be used.
+    :type mod: om2.MDGModifier or None
+    :param apply: If False then mod.doIt() will not be called, it is the clients reponsiblity to call doIt,
+                useful for batch operations.
+    :type apply: bool
+    :return:
+    :rtype: om2.MDGModifier
+    """
+    mod = mod or om2.MDGModifier()
+    if elementNumber in range(plug.evaluateNumElements()):
+        mod.removeMultiInstance(plug.elementByLogicalIndex(elementNumber), False)
+    if apply:
+        mod.doIt()
+    return mod
+
+
 def removeUnConnectedEmptyElements(plugArray, mod=None):
     mod = mod or om2.MDGModifier()
     for i in xrange(plugArray.evaluateNumElements()):
@@ -170,6 +193,15 @@ def setLockState(plug, state):
 
 
 def filterConnected(plug, filter):
+    """Filters all connected plugs by name using a regex with the `filter` argument. The filter is applied to the plugs
+    connected plug eg. if nodeA.translateX is connected to nodeB.translateX  and this func is used on nodeA.translateX
+    then nodeB.translateX will have the filter applied to the plug.name()
+    :param plug: The plug to search the connections from.
+    :type plug: om2.MPlug
+    :param filter: the regex string
+    :type filter: str
+    :rtype: iterable(om2.MPlug)
+    """
     if not plug.isConnected:
         return list()
 
@@ -255,12 +287,17 @@ def serializePlug(plug):
                      "channelBox": plug.isChannelBox, "keyable": plug.isKeyable,
                      "isArray": plug.isArray})
         if not plug.isCompound:
-            data.update({"isDynamic": True, "default": plugDefault(plug), "min": getPlugMin(plug), "max": getPlugMax(plug),
-                         "softMin": getSoftMin(plug), "softMax": getSoftMax(plug),
-                         "value": getPythonTypeFromPlugValue(plug)
+            attrType = plugType(plug)
+            data.update({"isDynamic": True, "default": mayaTypeToPythonType(plugDefault(plug)),
+                         "min": mayaTypeToPythonType(getPlugMin(plug)),
+                         "max": mayaTypeToPythonType(getPlugMax(plug)),
+                         "softMin": mayaTypeToPythonType(getSoftMin(plug)),
+                         "softMax": mayaTypeToPythonType(getSoftMax(plug)),
+                         "value": getPythonTypeFromPlugValue(plug),
+                         "Type": attrType
                          }
                         )
-            if plugType(plug) == attrtypes.kMFnkEnumAttribute:
+            if attrType == attrtypes.kMFnkEnumAttribute:
                 data["enums"] = enumNames(plug)
         else:
             data["children"] = [serializePlug(plug.child(i)) for i in range(plug.numChildren())]
@@ -761,6 +798,7 @@ def setPlugInfoFromDict(plug, **kwargs):
     plug.isKeyable = kwargs.get("keyable", False)
     plug.isLocked = kwargs.get("locked", False)
 
+
 def setPlugValue(plug, value):
     """
     Sets the given plug's value to the passed in value.
@@ -972,28 +1010,36 @@ def getPythonTypeFromPlugValue(plug):
         res = []
         for idx, dt in enumerate(dataType):
             if dt == attrtypes.kMFnDataMatrix:
-                res.append([i for i in value[idx]])
+                res.append(tuple(value[idx]))
             elif dt in (
                     attrtypes.kMFnUnitAttributeDistance, attrtypes.kMFnUnitAttributeAngle,
                     attrtypes.kMFnUnitAttributeTime):
                 res.append(value[idx].value)
         return res
     elif dataType in (attrtypes.kMFnDataMatrixArray, attrtypes.kMFnDataVectorArray):
-        return [[i for i in subValue] for subValue in value]
+        return map(tuple, value)
     elif dataType in (
             attrtypes.kMFnUnitAttributeDistance, attrtypes.kMFnUnitAttributeAngle, attrtypes.kMFnUnitAttributeTime):
         return value.value
     elif dataType in types:
-        return [i for i in value]
+        return tuple(value)
 
     return value
 
 
+def mayaTypeToPythonType(mayaType):
+    if isinstance(mayaType, (om2.MDistance, om2.MTime, om2.MAngle)):
+        return mayaType.value
+    elif isinstance(mayaType, (om2.MMatrix, om2.MVector, om2.MPoint)):
+        return type(mayaType)
+    return mayaType
+
+
 def pythonTypeToMayaType(dataType, value):
     if dataType == attrtypes.kMFnDataMatrixArray:
-        return [om2.MMatrix(subValue) for subValue in value]
+        return map(om2.MMatrix, value)
     elif attrtypes.kMFnDataVectorArray:
-        return [om2.MVector(subValue) for subValue in value]
+        return map(om2.MVector, value)
     elif dataType == attrtypes.kMFnUnitAttributeDistance:
         return om2.MDistance(value)
     elif dataType == attrtypes.kMFnUnitAttributeAngle:
@@ -1009,6 +1055,13 @@ def nextAvailableElementPlug(arrayPlug):
         return arrayPlug.elementByLogicalIndex(0)
     for i in xrange(1, count):
         availPlug = arrayPlug.elementByPhysicalIndex(i)
+        connected = False
+        for childIndex in range(availPlug.numChildren()):
+            if availPlug.child(childIndex).isSource:
+                connected = True
+                break
+        if connected:
+            continue
         if availPlug.isSource:
             continue
         return availPlug
@@ -1022,6 +1075,14 @@ def nextAvailableDestElementPlug(arrayPlug):
         return arrayPlug.elementByLogicalIndex(0)
     for i in xrange(count):
         availPlug = arrayPlug.elementByPhysicalIndex(i)
+        if availPlug.isCompound:
+            connected = False
+            for childIndex in range(availPlug.numChildren()):
+                if availPlug.child(childIndex).isDestination:
+                    connected = True
+                    break
+            if connected:
+                continue
         if availPlug.isDestination:
             continue
         return availPlug
