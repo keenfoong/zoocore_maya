@@ -12,13 +12,21 @@ from maya import cmds
 logger = zlogging.getLogger(__name__)
 
 
+def findLayout(layoutId):
+    reg = LayoutRegistry()
+    if layoutId in reg.layouts:
+        return reg.layouts[layoutId]
+
+
 class LayoutRegistry(object):
+    LAYOUT_ENV = "ZOO_MM_LAYOUT_PATH"
     __metaclass__ = classtypes.Singleton
 
     def __init__(self):
         self.layouts = {}
+        self.registerLayoutByEnv(LayoutRegistry.LAYOUT_ENV)
 
-    def registryLayoutByEnv(self, env):
+    def registerLayoutByEnv(self, env):
         """Recursively Registers all layout files with the extension .mmlayout and loads the json data with a layout
         instance then adds to the layouts cache
 
@@ -35,6 +43,29 @@ class LayoutRegistry(object):
 
 
 class Layout(object):
+    """
+    ::example:
+     >>> layoutData={"items":{"N": "",
+                              "NW": "",
+                              "W": "",
+                              "SW": "",
+                              "S": "",
+                              "SE": "",
+                              "E": "",
+                              "NE": "",
+                              "generic": [{"type": "menu",
+                                          "name": "Testmenu",
+                                          "children": [{"type": "python",
+                                                        "command": "",
+                                                        "commandUi": ""}
+                                                        ]
+                                          ]
+
+                              },
+                    "id": "some.layout.id"}
+     >>> layoutObj = Layout(layoutData)
+     >>> layoutObj
+    """
     executor = executor.Executor()
 
     def __init__(self, data):
@@ -91,13 +122,21 @@ class Layout(object):
         """
         layout = layout or self
         failed = []
-        for item, data in iter(layout):
-            if isinstance(data, Layout):
+        for item, data in iter(layout["items"].items()):
+            if not data:
+                continue
+            elif isinstance(data, Layout):
                 failed.extend(self.validate(data))
             elif item == "generic":
                 failed.extend(self._validateGeneric(data))
-            command = self.executor.findCommand(data)
-            if not command:
+            elif data.get("type", "") == "python":
+                continue
+            elif data.get("type", "") == "zooCommand":
+                command = self.executor.findCommand(data["command"])
+                if not command:
+                    failed.append(data)
+
+            else:
                 failed.append(data)
         return failed
 
@@ -111,13 +150,20 @@ class Layout(object):
         """
         failed = []
         for item in iter(data):
-            if isinstance(item, basestring):
+            commandType = item["type"]
+            # cant validate python commands without executing them?
+            if commandType == "python":
+                continue
+            elif commandType == "menu":
+                failed.extend(self._validateGeneric(item["children"]))
+            elif commandType == "zooCommand":
                 command = self.executor.findCommand(item)
                 if not command:
                     failed.append(item)
                 continue
-            elif isinstance(item, dict):
-                failed.extend(self._validateGeneric(item["generic"]))
+            else:
+                failed.append(item)
+
         return failed
 
     def solve(self):
@@ -129,15 +175,21 @@ class Layout(object):
         """
         registry = LayoutRegistry()
         solved = False
-        for item, data in self.data.items():
-            if isinstance(data, basestring) and data.startswith("@"):
-                subLayout = registry.layouts.get(data)
+        for item, data in self.data["items"].items():
+            if not data:
+                continue
+            elif item == "generic":
+                solved = True
+                continue
+            elif data["type"] == "layout":
+                subLayout = registry.layouts.get(data["command"])
                 if not subLayout:
                     logger.warning("No layout with the id {}, skipping".format(data))
                     continue
                 subLayout.solve()
                 self.data[item] = subLayout
                 solved = True
+
         self.solved = solved
         return solved
 
@@ -145,13 +197,15 @@ class Layout(object):
 class MarkingMenu(object):
     """Maya MarkingMenu wrapper object to support zoocommands. MM layouts are defined by the Layout instance class
     """
+
     def __init__(self, layout, name, parent, commandExecutor):
         self.layout = layout
         self.name = name
-        self.description = ""
         self.commandExecutor = commandExecutor
         self.parent = parent
         self.popMenu = None  # the menu popup menu, gross thanks maya
+        if cmds.popupMenu(name, ex=True):
+            cmds.deleteUI(name)
 
         self.options = {"allowOptionBoxes": False,
                         "altModifier": False,
@@ -163,6 +217,9 @@ class MarkingMenu(object):
     def asQObject(self):
         return mayaui.toQtObject(self.name)
 
+    def attach(self):
+        self._show(self.parent, self.parent)
+
     def create(self):
         if cmds.popupMenu(self.name, exists=True):
             cmds.deleteUI(self.name)
@@ -172,17 +229,18 @@ class MarkingMenu(object):
         return self
 
     def _show(self, menu, parent):
-        cmds.setParent(menu, m=True)
-        cmds.menu(menu, e=True, dai=True)
+        cmds.setParent(menu, menu=True)
+        cmds.menu(menu, edit=True, deleteAllItems=True)
+
         self.show(self.layout, menu, parent)
 
     def kill(self):
         if cmds.popupMenu(self.name, ex=True):
             cmds.deleteUI(self.name)
 
-    def _buildGeneric(self, data, menu, parent):
+    def _buildGeneric(self, data, menu):
         for item in data:
-            if isinstance(item, basestring):
+            if item["type"] == "zooCommand":
                 command = self.commandExecutor.findCommand(item)
                 uiData = command.uiData
                 uiData.create(parent=menu)
@@ -190,7 +248,12 @@ class MarkingMenu(object):
                 continue
             elif item["type"] == "menu":
                 subMenu = cmds.menuItem(label=item["label"], subMenu=True)
-                self._buildGeneric(item["children"], subMenu, parent)
+                self._buildGeneric(item["children"], subMenu)
+            elif item["type"] == "python":
+                cmds.menuItem(label=item["label"], command=item["command"], parent=menu)
+                optionBox = item.get("optionBox", False)
+                if optionBox:
+                    cmds.menuItem(parent=menu, optionBox=optionBox, command=item["commandUi"])
 
     def show(self, layout, menu, parent):
         for item, data in layout.items():
@@ -198,19 +261,26 @@ class MarkingMenu(object):
                 continue
             # menu generic
             if item == "generic":
-                self._buildGeneric(data, menu, parent)
+                self._buildGeneric(data, menu)
                 continue
             # nested marking menu
             elif isinstance(data, Layout):
                 radMenu = cmds.menuItem(label=data["id"], subMenu=True, radialPosition=item.upper())
                 self.show(data, radMenu, parent)
                 continue
-            # single item
-            command = self.commandExecutor.findCommand(data)
-            uiData = command.commandAction(1)
-            uiData.create(parent=menu)
-            cmds.menuItem(uiData.item, e=True, radialPosition=item.upper())
-            uiData.triggered.connect(self.commandExecutor.execute)
+            elif data["type"] == "zooCommand":
+                # single item
+                command = self.commandExecutor.findCommand(data["command"])
+                if command is None:
+                    logger.warning("ZooCommand by id:{} doesn't exist".format(data["command"]))
+                    continue
+                uiData = command.commandAction(1, parent=menu)
+                cmds.menuItem(uiData.item, e=True, radialPosition=item.upper())
+                uiData.triggered.connect(self.commandExecutor.execute)
+
+            elif data["type"] == "python":
+                cmds.menuItem(label=data["label"], optionBox=data.get("optionBox", False),
+                              command=data["command"])
 
     def allowOptionBoxes(self):
         return cmds.popupMenu(self.name, q=True, allowOptionBoxes=True)

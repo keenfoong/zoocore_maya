@@ -791,9 +791,9 @@ def setPlugInfoFromDict(plug, **kwargs):
     if max is not None:
         setMax(plug, max)
     if softMin is not None:
-        setSoftMin(plug.object(), softMin)
+        setSoftMin(plug, softMin)
     if softMax is not None:
-        setSoftMax(plug.object(), softMax)
+        setSoftMax(plug, softMax)
     plug.isChannelBox = kwargs.get("channelBox", False)
     plug.isKeyable = kwargs.get("keyable", False)
     plug.isLocked = kwargs.get("locked", False)

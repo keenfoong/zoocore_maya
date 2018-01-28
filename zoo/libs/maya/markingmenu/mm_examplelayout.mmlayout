@@ -1,15 +1,35 @@
-{"items":{"N": "",
-          "NW": "",
-          "W": "",
-          "SW": "",
-          "S": "",
-          "SE": "",
-          "E": "",
-          "NE": "",
-          "generic": [{"type": "menu",
-                      "name": "Testmenu",
-                      "children": []}
-                      ]
-
-          },
-"id": ""}
+{
+  "items": {
+    "N": {
+      "type": "layout",
+      "command": "layoutId"
+    },
+    "NW": {
+      "type": "zooCommand",
+      "command": "somecommand.id",
+      "commandUi": "somecommandUi.id"
+    },
+    "W": "",
+    "SW": "",
+    "S": "",
+    "SE": "",
+    "E": "",
+    "NE": "",
+    "generic": [
+      {
+        "type": "menu",
+        "label": "Testmenu",
+        "children": [
+          {
+            "type": "python",
+            "command": "print \u0027hello world\u0027",
+            "label": "test",
+            "optionBox": true,
+            "commandUi": "print \u0027optionbox\u0027"
+          }
+        ]
+      }
+    ]
+  },
+  "id": "some.layout.id"
+}

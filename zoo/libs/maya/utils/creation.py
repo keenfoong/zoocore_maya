@@ -28,18 +28,10 @@ def distanceBetween(firstNode, secondNode, name):
     secondFnWorldMat = secondFn.findPlug("worldMatrix", False)
     secondFnWorldMat.evaluateNumElements()
 
-    startDecomposeMat = nodes.createDGNode("_".join([firstFn.name(), secondFn.name(), "start_decomp"]),
-                                           "decomposeMatrix")
-    endDecomposeMat = nodes.createDGNode("_".join([firstFn.name(), secondFn.name(), "end_decomp"]), "decomposeMatrix")
-    startDecomFn = om2.MFnDependencyNode(startDecomposeMat)
-    endDecomFn = om2.MFnDependencyNode(endDecomposeMat)
-    plugs.connectPlugs(firstFnWorldMat.elementByPhysicalIndex(0), startDecomFn.findPlug("inputMatrix", False))
-    plugs.connectPlugs(secondFnWorldMat.elementByPhysicalIndex(0), endDecomFn.findPlug("inputMatrix", False))
+    plugs.connectPlugs(firstFnWorldMat.elementByPhysicalIndex(0), distFn.findPlug("inMatrix1", False))
+    plugs.connectPlugs(secondFnWorldMat.elementByPhysicalIndex(0), distFn.findPlug("inMatrix2", False))
 
-    plugs.connectPlugs(startDecomFn.findPlug("outputTranslate", False), distFn.findPlug("point1", False))
-    plugs.connectPlugs(endDecomFn.findPlug("outputTranslate", False), distFn.findPlug("point2", False))
-
-    return distanceBetweenNode, startDecomposeMat, endDecomposeMat
+    return distanceBetweenNode
 
 
 def multiplyDivide(input1, input2, operation, name):

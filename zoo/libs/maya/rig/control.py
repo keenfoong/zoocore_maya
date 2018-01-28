@@ -229,12 +229,12 @@ class Control(object):
             if shapeIndex == 0:
                 shapes = nodes.shapes(self.dagPath)
                 for shape in shapes:
-                    nodes.setNodeColour(shape.node(), colour)
+                    nodes.setNodeColour(shape, colour)
             else:
                 shape = nodes.shapeAtIndex(self.dagPath.node(), shapeIndex)
-                nodes.setNodeColour(shape.node, colour)
+                nodes.setNodeColour(shape, colour)
             return
-        nodes.setNodeColour(self.dagPath.node(), colour)
+        nodes.setNodeColour(self.dagPath, colour)
 
     def setRotationOrder(self, rotateOrder=None):
         """Sets rotation order for the control

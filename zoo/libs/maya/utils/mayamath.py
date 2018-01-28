@@ -38,9 +38,11 @@ def aimToNode(source, target, aimVector=None,
     quatU = om2.MQuaternion(eyeAim, eyeU)
 
     upRotated = eyeUp.rotateBy(quatU)
+    # try:
     try:
         angle = math.acos(upRotated * eyeV)
-    except ZeroDivisionError:
+
+    except (ZeroDivisionError, ValueError):
         return  # if already aligned then we just return
 
     quatV = om2.MQuaternion(angle, eyeU)

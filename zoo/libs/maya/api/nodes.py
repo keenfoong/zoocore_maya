@@ -104,7 +104,7 @@ def asDagPath(node):
     return sel.getDagPath(0)
 
 
-def setNodeColour(node, colour):
+def setNodeColour(node, colour, outlinerColour=None):
     """Set the given node mobject override color can be a mobject representing a transform or shape
 
     :param node: the node which you want to change the override colour of
@@ -121,6 +121,12 @@ def setNodeColour(node, colour):
     if not plugs.getPlugValue(overrideRGBColors):
         plugs.setPlugValue(dependNode.findPlug("overrideRGBColors", False), True)
     plugs.setPlugValue(plug, colour)
+    # deal with the outliner
+    if outlinerColour:
+        useOutliner = dependNode.findPlug("useOutlinerColor", False)
+        if plugs.getPlugValue(useOutliner):
+            plugs.setPlugValue(useOutliner, True)
+        plugs.setPlugValue(dependNode.findPlug("outlinerColor", False), outlinerColour)
 
 
 def getNodeColourData(node):
@@ -139,9 +145,12 @@ def getNodeColourData(node):
     plug = dependNode.findPlug("overrideColorRGB", False)
     enabledPlug = dependNode.findPlug("overrideEnabled", False)
     overrideRGBColors = dependNode.findPlug("overrideRGBColors", False)
+    useOutliner = dependNode.findPlug("useOutlinerColor", False)
     return {"overrideEnabled": plugs.getPlugValue(enabledPlug),
             "overrideColorRGB": plugs.getPlugValue(plug),
-            "overrideRGBColors": plugs.getPlugValue(overrideRGBColors)}
+            "overrideRGBColors": plugs.getPlugValue(overrideRGBColors),
+            "useOutlinerColor": plugs.getPlugValue(useOutliner),
+            "outlinerColor": plugs.getPlugValue(dependNode.findPlug("outlinerColor", False))}
 
 
 def createDagNode(name, nodeType, parent=None):
@@ -827,6 +836,13 @@ def addAttribute(node, longName, shortName, attrType=attrtypes.kMFnNumericDouble
     :param attrType: attribute Type, attrtypes constants
     :param apply: if False the attribute will be immediately created on the node else just return the attribute instance
     :rtype: om.MObject
+    ::example:
+        # message attribute
+        >>> attrMobj = addAttribute(myNode, "testMsg", "testMsg", attrType=attrtypes.kMFnMessageAttribute,
+        ...                         isArray=False, apply=True)
+        # double angle
+        >>> attrMobj = addAttribute(myNode, "myAngle", "myAngle", attrType=attrtypes.kMFnUnitAttributeAngle,
+        ...                         keyable=True, channelBox=False)
     """
     if hasAttribute(node, longName):
         raise ValueError("Node -> '%s' already has attribute -> '%s'" % (nameFromMObject(node), longName))
@@ -1156,35 +1172,31 @@ def mirrorTransform(node, parent, translate, rotate):
     else:
         for i in translate:
             translation[zoomath.AXIS[i]] *= -1
-    rotMatrix = transMat.asRotateMatrix()
     # mirror the rotation on a plane
+    quat = transMat.rotation(asQuaternion=True)
     if rotate == "xy":
-        mirrorRot = mayamath.mirrorXY(rotMatrix)
+        quat.z *= -1
+        quat.w *= -1
     elif rotate == "yz":
-        mirrorRot = mayamath.mirrorYZ(rotMatrix)
+        quat.x *= -1
+        quat.w *= -1
     else:
-        mirrorRot = mayamath.mirrorXZ(rotMatrix)
+        quat.y *= -1
+        quat.w *= -1
+    transMat.setRotation(quat)
+    rot = transMat.asRotateMatrix()
     # put the mirror rotationMat in the space of the parent
     if parent != om2.MObject.kNullObj:
         parentMatInv = getParentInverseMatrix(parent)
-        mirrorRot *= parentMatInv
-    return translation, mirrorRot
+        rot *= parentMatInv
+
+    return translation, om2.MTransformationMatrix(rot).rotation(asQuaternion=True)
 
 
 def mirrorNode(node, parent, translate, rotate):
-    nFn = om2.MFnDependencyNode(node)
-    rotateOrder = nFn.findPlug("rotateOrder", False).asInt()
-    transMatRotateOrder = generic.intToMTransformRotationOrder(rotateOrder)
-    translation, rotMatrix = mirrorTransform(node, parent, translate, rotate)  # MVector, MMatrix
-    mTrans = om2.MTransformationMatrix(getWorldMatrix(node))
-    quat = mTrans.rotation(asQuaternion=True)
-    quat.w *= -1
-    quat.x *= -1
+    translation, quat = mirrorTransform(node, parent, translate, rotate)  # MVector, MMatrix
     setRotation(node, quat)
     setTranslation(node, translation)
-    # rot = mayamath.toEulerFactory(rotMatrix, transMatRotateOrder)
-    # setRotation(node, rot)
-    # setTranslation(node, translation)
 
 
 def matchTransformMulti(targetPaths, source, translation=True, rotation=True, scale=True, space=om2.MSpace.kWorld,
@@ -1304,3 +1316,5 @@ def matchTransformSingle(targetPath, source, translation=True, rotation=True, sc
             pos += srcPivot - nodePivot
         fn.setTranslation(pos, space)
     return True
+
+

@@ -7,6 +7,20 @@ from zoo.libs.utils import zlogging
 
 logger = zlogging.zooLogger
 
+def reset():
+    try:
+        dagMenuScriptpath = path.findFirstInEnv('dagMenuProc.mel', 'MAYA_SCRIPT_PATH')
+
+    except:
+        logger.warning("Cannot find the dagMenuProc.mel script - aborting auto-override!")
+        return
+    try:
+        polyCutUVOptionsPopupScriptpath = path.findFirstInEnv('polyCutUVOptionsPopup.mel', 'MAYA_SCRIPT_PATH')
+    except:
+        logger.warning("Cannot find the polyCutUVOptionsPopup.mel script - aborting auto-override!")
+        return
+    mel.eval('source "{}";'.format(dagMenuScriptpath))
+
 
 def setup():
     """
@@ -29,9 +43,9 @@ def setup():
         fStream.write('\n/// ZOO MODS ########################\n')
         fStream.write('\tsetParent -m $parent;\n')
         fStream.write('\tmenuItem -d 1;\n')
-        fStream.write('\tpython("from zoo.libs.maya.markingmenu import markingmenu_validate");\n')
+        fStream.write('\tpython("from zoo.libs.maya.markingmenu import markingmenuvalidate");\n')
         fStream.write(
-            """\tint $killState = python("markingmenu_validate.validateAndBuild('"+{}+"', '"+{}+"')");\n""".format(parentVarStr,
+            """\tint $killState = python("markingmenuvalidate.validateAndBuild('"+{}+"', '"+{}+"')");\n""".format(parentVarStr,
                                                                                                            objectVarStr))
         fStream.write('\tif($killState) return;\n')
         fStream.write('/// END ZOO MODS ####################\n\n')
@@ -64,8 +78,10 @@ def setup():
         if not hasDagMenuProcBeenSetup:
             logger.error("Couldn't auto setup dagMenuProc!", exc_info=1)
             return
+        # there was a change by autodesk in maya 2017 which source the dagproc menu in the polyCutUVOptionsPopup file,
+        # which causes an issue if zoo is loaded on maya startup, so source it first then the dagproc menu
         mel.eval('source "{}";'.format(polyCutUVOptionsPopupScriptpath))
         # NOTE: this needs to be done twice to actually take...  go figure
         mel.eval('source "{}";'.format(tmpScriptpath))
     # Now delete the tmp script - we don't want the "mess"
-    tmpScriptpath.delete()
+    #tmpScriptpath.delete()

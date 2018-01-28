@@ -65,7 +65,8 @@ def createCurveShape(parent, data):
             plugs.setPlugValue(newCurve.findPlug("overrideEnabled", False),
                                int(curveData["overrideEnabled"]))
             colours = curveData["overrideColorRGB"]
-            nodes.setNodeColour(newCurve.object(), colours)
+            outlinerColour = curveData.get("outlinerColor")
+            nodes.setNodeColour(newCurve.object(), colours, outlinerColour=outlinerColour)
     return parent
 
 
