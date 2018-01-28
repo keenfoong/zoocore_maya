@@ -1,26 +1,8 @@
+import logging
 from zoo.libs.maya.markingmenu import menu, utils
 from zoo.libs.maya.api import nodes, scene
 
-layoutData = {
-    "items": {
-        "generic": [
-            {
-                "type": "menu",
-                "label": "Testmenu",
-                "children": [
-                    {
-                        "type": "python",
-                        "command": "print '\hello world\'",
-                        "label": "test",
-                        "optionBox": True,
-                        "commandUi": "print '\optionBox'"
-                    }
-                ]
-            }
-        ]
-    },
-    "id": "some.layout.id"
-}
+logger = logging.getLogger(__name__)
 
 
 def validateAndBuild(parentMenu, nodeName):
@@ -38,7 +20,6 @@ def validateAndBuild(parentMenu, nodeName):
         # for each compound found, consolidate and gather info
         for tp in triggerPlugs:
             node = tp.node()
-            print node
             if node in visited:
                 continue
             visited.append(node)
@@ -46,6 +27,7 @@ def validateAndBuild(parentMenu, nodeName):
             commandType = tp.child(0).asInt()
             commandStr = tp.child(1).asString()
             if commandType in (utils.PYTHON_TYPE, utils.COMMAND_TYPE):
+                logger.error("Currently not supported, soon to be done")
                 pass
             elif commandType == utils.LAYOUT_TYPE:
                 layout = menu.findLayout(commandStr)
