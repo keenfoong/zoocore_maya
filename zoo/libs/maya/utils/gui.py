@@ -34,3 +34,11 @@ def inViewMessage(header, message, type_=INFO, fadeStayTime=1000):
         return
     cmds.inViewMessage(assistMessage=msg.format(header, message), fadeStayTime=fadeStayTime, dragKill=True,
                        position=position, fade=True)
+
+
+def refreshContext():
+    try:
+        cmds.refresh(suppend=True)
+        yield
+    finally:
+        cmds.refresh(suppend=False)
