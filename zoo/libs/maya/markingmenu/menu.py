@@ -195,10 +195,21 @@ class Layout(object):
 
 
 class MarkingMenu(object):
-    """Maya MarkingMenu wrapper object to support zoocommands. MM layouts are defined by the Layout instance class
+    """Maya MarkingMenu wrapper object to support zoocommands and python executable code. MM layouts are defined by the
+    Layout instance class
     """
 
     def __init__(self, layout, name, parent, commandExecutor):
+        """
+        :param layout: the markingMenu layout instance
+        :type layout: ::class:`Layout`
+        :param name:
+        :type name: The markingMenu name
+        :param parent: The fullpath to the parent widget
+        :type parent: str
+        :param commandExecutor:
+        :type commandExecutor: ::class::`zoo.libs.command.executor.Executor`
+        """
         self.layout = layout
         self.name = name
         self.commandExecutor = commandExecutor
@@ -215,12 +226,30 @@ class MarkingMenu(object):
                         "shiftModifier": False}
 
     def asQObject(self):
+        """Returns this markingMenu as a PYQT object
+        :return:
+        :rtype: QMenu
+        """
         return mayaui.toQtObject(self.name)
 
     def attach(self):
-        self._show(self.parent, self.parent)
+        """Generate's the marking using the parent marking menu.
+
+        :return:
+        :rtype: bool
+        """
+        if cmds.popupMenu(self.parent, exists=True):
+            self._show(self.parent, self.parent)
+            return True
+        return False
 
     def create(self):
+        """Create's a new popup markingMenu parented to self.parent instance, use ::method:`attach` if you to add to
+        existing markingmenu.
+
+        :return: current instance
+        :rtype: ::class:`MarkingMenu`
+        """
         if cmds.popupMenu(self.name, exists=True):
             cmds.deleteUI(self.name)
 
