@@ -78,7 +78,7 @@ def serializeCurve(node, space=om2.MSpace.kObject):
     :return: returns the dict of data from the shapes
     :rtype: dict
     """
-    shapes = nodes.shapes(om2.MFnDagNode(node).getPath())
+    shapes = nodes.shapes(om2.MFnDagNode(node).getPath(), filterTypes=(om2.MFn.kNurbsCurve, ))
     data = {}
     for shape in shapes:
         dag = om2.MFnDagNode(shape.node())

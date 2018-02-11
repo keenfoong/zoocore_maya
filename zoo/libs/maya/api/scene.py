@@ -1,7 +1,7 @@
 from contextlib import contextmanager
 
 from maya.api import OpenMaya as om2
-from zoo.libs.maya.api import nodes
+from zoo.libs.maya.api import nodes, plugs, curves
 from zoo.libs.maya.utils import mayamath
 
 
@@ -138,20 +138,70 @@ def deserializeNodes(data):
     return createNodes
 
 
-class GraphDeserializer(list):
+class GraphDeserializer(dict):
+
     def __init__(self, data):
         super(GraphDeserializer, self).__init__(data)
+        self.results = {}
 
-    def deserializeGraph(self):
-        for index in xrange(len(self)):
-            self[index] = nodes.deserializeNode(self[index])
+    def process(self, nodeMap):
+        self.results.update(nodeMap)
+        connections = []
+        for k, n in self.items():
+            # skip any currently processed nodes.
+            if k in self.results:
+                continue
+            parent = n.get("parent")
+            parentNode = None
+            # if we have a parentNode that means we're a Dag node, so try to resolve the parent,
 
-    def __getattr__(self, item):
-        for i in iter(self):
-            if nodes.nameFromMObject(i, True, False) == item:
-                if i.hasFn(om2.MFn.DagNode):
-                    return om2.MFnDagNode(i)
-                return om2.MFnDependencyNode(i)
+            if parent:
+                parentNode = self.results.get(parent)
+                # if we have come across the parent before it should already have been process so skip
+                if parentNode is None and parent in self:
+                    # ok in this case we have visited the parent so process it
+                    parentData = self[parent]
+                    parentNode, attrs = nodes.deserializeNode(parentData,
+                                                              self.results.get(self[parent]["parent"]))
+                    shapeData = parentData.get("shape")
+                    if shapeData:
+                        curves.createCurveShape(parentNode, shapeData)
+                    self.results[parent] = parentNode
+                    connections.extend(parentData.get("connections", []))
+
+            newNode, attrs = nodes.deserializeNode(n, parentNode)
+            shapeData = n.get("shape")
+            if shapeData:
+                curves.createCurveShape(parentNode, shapeData)
+            self.results[k] = newNode
+            connections.extend(n.get("connections", []))
+        if connections:
+            self._deserializeConnections(connections)
+
+    def _deserializeConnections(self, connections):
+        plugList = om2.MSelectionList()
+        for conn in connections:
+            sourceNode = self.results.get(conn["source"])
+            destinationNode = self.results.get(conn["destination"])
+            if sourceNode is None or destinationNode is None:
+                continue
+            fn = om2.MFnDependencyNode(sourceNode)
+            destFn = om2.MFnDependencyNode(destinationNode)
+            if fn.hasAttribute(conn["sourcePlug"]):
+                sourcePlug = fn.findPlug(conn["sourcePlug"], False)
+            else:
+                plugList.add(".".join([nodes.nameFromMObject(sourceNode), conn["sourcePlug"]]))
+                sourcePlug = plugList.getPlug(plugList.length() - 1)
+            if destFn.hasAttribute(conn["destinationPlug"]):
+                destinationPlug = destFn.findPlug(conn["destinationPlug"], False)
+            else:
+                plugList.add(".".join([nodes.nameFromMObject(destinationNode), conn["destinationPlug"]]))
+
+                destinationPlug = plugList.getPlug(plugList.length() - 1)
+            try:
+                plugs.connectPlugs(sourcePlug, destinationPlug, force=True)
+            except RuntimeError:
+                continue
 
 
 def aimNodes(targetNode, driven, aimVector=None,

@@ -4,7 +4,6 @@ from maya.api import OpenMayaAnim as om2Anim
 from maya.api import OpenMaya as om2
 from zoo.libs.utils import general
 
-
 FRAME_TO_UNIT = {25: om2.MTime.k25FPS,
                  30: om2.MTime.k30FPS,
                  48: om2.MTime.k48FPS,
@@ -165,3 +164,21 @@ def maintainTime():
         yield
     finally:
         om2Anim.MAnimControl.setCurrentTime(currentTime)
+
+
+def iterFrameRangeDGContext(start, end):
+    """Generator function to iterate over a time range returning a MDGContext for the current frame.
+
+    :param start: the start frame
+     :type start: int
+    :param end: the end frame
+    :type end: int
+    :return: Returns a generator function with each element being a MDGContext with the current frame applied
+    :rtype: Generator(om2.MDGContext)
+    """
+    currentTime = om2Anim.MAnimControl.currentTime()
+    perFrame = om2.MTime(start, currentTime.unit)
+    for frame in range(start, end + 1):
+        context = om2.MDGContext(perFrame)
+        yield context
+        perFrame += 1

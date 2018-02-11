@@ -267,7 +267,7 @@ def childPathsByFn(path, fn):
     return [p for p in childPaths(path) if p.hasFn(fn)]
 
 
-def shapes(path):
+def shapes(path, filterTypes=()):
     """Returns all the shape dagpaths directly below this dagpath
 
     :param path: The MDagPath to search
@@ -277,7 +277,8 @@ def shapes(path):
     for i in xrange(path.numberOfShapesDirectlyBelow()):
         dagPath = om2.MDagPath(path)
         dagPath.extendToShape(i)
-        paths.append(dagPath)
+        if not filterTypes or dagPath.apiType() in filterTypes:
+            paths.append(dagPath)
     return paths
 
 
@@ -725,8 +726,8 @@ def getRotation(obj, space, asQuaternion=False):
     return trans.rotation(space, asQuaternion=asQuaternion)
 
 
-def addProxyAttribute(node, sourcePlug, longName, shortName, attrType=attrtypes.kMFnNumericDouble):
-    attr1 = addAttribute(node, longName, shortName, attrType)
+def addProxyAttribute(node, sourcePlug, **kwargs):
+    attr1 = addAttribute(node, **kwargs)
     attr1.isProxyAttribute = True
     plugs.connectPlugs(sourcePlug, om2.MPlug(node, attr1.object()))
     return attr1
@@ -769,7 +770,7 @@ def addCompoundAttribute(node, longName, shortName, attrMap, isArray=False, **kw
     for data, plug in zip(attrMap, children):
         plugs.setPlugInfoFromDict(plug, **data)
 
-    return compObj
+    return compound
 
 
 def addAttributesFromList(node, data):
@@ -1012,6 +1013,50 @@ def getNodesCreatedBy(function, *args, **kwargs):
 
 
 def serializeNode(node, skipAttributes=None, includeConnections=True):
+    """This function takes an om2.MObject representing a maya node and serializes it into a dict,
+    This iterates through all attributes, serializing any extra attributes found, any default attribute has not changed
+    (defaultValue) and not connected or is an array attribute will be skipped.
+    if `arg` includeConnections is True then all destination connections are serializated as a dict per connection.
+
+    :param node: The node to serialize
+    :type node: om2.MObject
+    :param skipAttributes: The list of attribute names to serialization.
+    :type skipAttributes: list or None
+    :param includeConnections: If True find and serialize all connections where the destination is this node.
+    :type includeConnections: bool
+    :rtype: dict
+    :return: {
+                "attributes": [
+                {
+                  "Type": 10,
+                  "channelBox": false,
+                  "default": 0.0,
+                  "isArray": false,
+                  "isDynamic": true,
+                  "keyable": true,
+                  "locked": false,
+                  "max": null,
+                  "min": null,
+                  "name": "toeRest",
+                  "softMax": 3.14,
+                  "softMin": -1.7,
+                  "value": 0.31353071143768485
+                },
+              ],
+              "connections": [
+                {
+                  "destination": "|legGlobal_L_cmpnt|control|configParameters",
+                  "destinationPlug": "plantLength",
+                  "source": "|legGlobal_L_guide_heel_ctrl|legGlobal_L_guide_tip_ctrl",
+                  "sourcePlug": "translateZ"
+                },
+              ],
+              "name": "|legGlobal_L_cmpnt|control|configParameters",
+              "parent": "|legGlobal_L_cmpnt|control",
+              "type": "transform"
+    }
+
+    """
     dep = om2.MFnDagNode(node) if node.hasFn(om2.MFn.kDagNode) else om2.MFnDependencyNode(node)
 
     data = {"name": dep.fullPathName() if node.hasFn(om2.MFn.kDagNode) else dep.name(),
@@ -1024,7 +1069,7 @@ def serializeNode(node, skipAttributes=None, includeConnections=True):
         data["parent"] = om2.MFnDagNode(dep.parent(0)).fullPathName()
     attributes = []
     for pl in iterAttributes(node, skip=skipAttributes):
-        if pl.isDefaultValue() and not pl.isConnected:
+        if (pl.isDefaultValue() and not pl.isConnected) or pl.isChild:
             continue
         attrData = plugs.serializePlug(pl)
         if attrData:
@@ -1042,19 +1087,41 @@ def serializeNode(node, skipAttributes=None, includeConnections=True):
     return data
 
 
-def deserializeNode(data):
+def deserializeNode(data, parent=None):
     """
+    :example Data: {
+                "attributes": [
+                {
+                  "Type": 10,
+                  "channelBox": false,
+                  "default": 0.0,
+                  "isArray": false,
+                  "isDynamic": true,
+                  "keyable": true,
+                  "locked": false,
+                  "max": null,
+                  "min": null,
+                  "name": "toeRest",
+                  "softMax": 3.14,
+                  "softMin": -1.7,
+                  "value": 0.31353071143768485
+                },
+              ],
+              "name": "|legGlobal_L_cmpnt|control|configParameters",
+              "parent": "|legGlobal_L_cmpnt|control",
+              "type": "transform"
+    }
 
-    :param data: Same data as serializeNode() but can be a varient of this, for example the IO
-                connections of the attributes can be MPlugs instead of a (nodeName,plugName).
-                In this way you can inject the node into an existing graph.
+    :param data: Same data as serializeNode()
     :type data: dict
-    :return: The createnode MObject
-    :rtype: MObject
+    :param parent: The parent of the newly created node if any defaults to None which is the same as the world node
+    :type parent: om2.MObject
+    :return: The created node MObject, a list of created attributes
+    :rtype: tuple(MObject, list(om2.MPlug))
     """
-    name = om2.MNamespace.stripNamespaceFromName(data["name"]).split("|")[-1]
+    nodeName = data["name"].split("|")[-1]
     nodeType = data["type"]
-    parent = data["parent"]
+    parentData = data.get("parent")
     req = data.get("requirements", ())
     for r in iter(req):
         try:
@@ -1062,18 +1129,30 @@ def deserializeNode(data):
         except RuntimeError:
             logger.error("Could not load plugin->{}".format(r), exc_info=True)
             return
-    if parent:
-        newNode = createDagNode(name, nodeType)
+    if parentData:
+        newNode = createDagNode(nodeName, nodeType, parent)
     else:
-        newNode = createDGNode(name, nodeType)
-
-    # attribute key doesn't need to exist so check
-    attributes = data.get("attributes", {})
-    for attrData in iter(attributes.items()):
-        addAttributesFromList(newNode, attrData)
-
-    # connections
-    return newNode
+        newNode = createDGNode(nodeName, nodeType)
+    plugList = om2.MSelectionList()
+    createdAttributes = []
+    for attrData in data.get("attributes", tuple()):
+        name = attrData["name"]
+        fullName = ".".join([nodeName, name])
+        try:
+            plugList.add(fullName)
+            found = True
+        except RuntimeError:
+            found = False
+        if found:
+            plugs.setPlugInfoFromDict(plugList.getPlug(plugList.length() - 1), **attrData)
+        else:
+            children = attrData.get("children")
+            if children:
+                attr = addCompoundAttribute(newNode, name, name, attrMap=children, **attrData)
+            else:
+                attr = addAttribute(newNode, name, name, attrData["Type"], **attrData)
+            createdAttributes.append(om2.MPlug(newNode, attr.object()))
+    return newNode, createdAttributes
 
 
 def createAnnotation(rootObj, endObj, text=None, name=None):

@@ -280,39 +280,37 @@ def serializePlug(plug):
                                       "min": type, "max": type, "softMin": type, "softMax": type}
     :rtype: dict
     """
-    data = {}
-    if plug.isDynamic:
-        data.update({"name": plug.partialName(includeNonMandatoryIndices=True, useLongNames=True,
-                                              includeInstancedIndices=True),
-                     "channelBox": plug.isChannelBox, "keyable": plug.isKeyable,
-                     "isArray": plug.isArray})
-        if not plug.isCompound:
-            attrType = plugType(plug)
-            data.update({"isDynamic": True, "default": mayaTypeToPythonType(plugDefault(plug)),
-                         "min": mayaTypeToPythonType(getPlugMin(plug)),
+    data = {"isDynamic": plug.isDynamic}
+    attrType = plugType(plug)
+    if not plug.isDynamic:
+        # skip any default attribute that hasn't changed value, this could be a tad short sighted since other state
+        # options can change, also skip array attributes since we still pull the elements if the value has changed
+        if plug.isDefaultValue() or plug.isArray:
+            return dict()
+    else:
+        if plug.isCompound:
+            data["children"] = [serializePlug(plug.child(i)) for i in range(plug.numChildren())]
+        else:
+            data.update({"min": mayaTypeToPythonType(getPlugMin(plug)),
                          "max": mayaTypeToPythonType(getPlugMax(plug)),
                          "softMin": mayaTypeToPythonType(getSoftMin(plug)),
                          "softMax": mayaTypeToPythonType(getSoftMax(plug)),
-                         "value": getPythonTypeFromPlugValue(plug),
-                         "Type": attrType
                          }
                         )
-            if attrType == attrtypes.kMFnkEnumAttribute:
-                data["enums"] = enumNames(plug)
-        else:
-            data["children"] = [serializePlug(plug.child(i)) for i in range(plug.numChildren())]
-    else:
-        # for the time being we only store attribute data that has the default value changed
-        if not plug.isDefaultValue():
-            attrType = plugType(plug)
-            data.update({"isDynamic": False, "channelBox": plug.isChannelBox, "keyable": plug.isKeyable,
-                         "locked": plug.isLocked, "Type": attrType, "value": getPythonTypeFromPlugValue(plug),
-                         "name": plug.partialName(includeInstancedIndices=True, useLongNames=True,
-                                                  includeNonMandatoryIndices=True), "isArray": plug.isArray}
-                        )
-            if plugType(plug) == attrtypes.kMFnkEnumAttribute:
-                data["enums"] = enumNames(plug)
 
+    data.update({"name": plug.partialName(includeNonMandatoryIndices=True, useLongNames=True,
+                                          includeInstancedIndices=True),
+                 "channelBox": plug.isChannelBox,
+                 "keyable": plug.isKeyable,
+                 "locked": plug.isLocked,
+                 "isArray": plug.isArray,
+                 "default": mayaTypeToPythonType(plugDefault(plug)),
+                 "Type": attrType,
+                 "value": getPythonTypeFromPlugValue(plug),
+                 })
+
+    if plugType(plug) == attrtypes.kMFnkEnumAttribute:
+        data["enums"] = enumNames(plug)
     return data
 
 
@@ -335,8 +333,10 @@ def serializeConnection(plug):
         sourceNPath = om2.MFnDagNode(sourceN).fullPathName() if sourceN.hasFn(
             om2.MFn.kDagNode) else om2.MFnDependencyNode(sourceN).name()
     destN = plug.node()
-    return {"sourcePlug": source.partialName(includeNonMandatoryIndices=True, useLongNames=True),
-            "destinationPlug": plug.partialName(includeNonMandatoryIndices=True, useLongNames=True),
+    return {"sourcePlug": source.partialName(includeNonMandatoryIndices=True, useLongNames=True,
+                                             includeInstancedIndices=True),
+            "destinationPlug": plug.partialName(includeNonMandatoryIndices=True, useLongNames=True,
+                                                includeInstancedIndices=True),
             "source": sourceNPath,
             "destination": om2.MFnDagNode(destN).fullPathName() if destN.hasFn(om2.MFn.kDagNode) else
             om2.MFnDependencyNode(destN).name()}
@@ -395,6 +395,9 @@ def plugDefault(plug):
     elif obj.hasFn(om2.MFn.kUnitAttribute):
         attr = om2.MFnUnitAttribute(obj)
         return attr.default
+    elif obj.hasFn(om2.MFn.kMatrixAttribute):
+        attr = om2.MFnMatrixAttribute(obj)
+        return attr.default
     elif obj.hasFn(om2.MFn.kEnumAttribute):
         attr = om2.MFnEnumAttribute(obj)
         return attr.default
@@ -424,7 +427,7 @@ def setPlugDefault(plug, default):
         return True
     elif obj.hasFn(om2.MFn.kMatrixAttribute):
         attr = om2.MFnMatrixAttribute(obj)
-        attr.default = om2.MFnMatrixData().create(om2.MMatrix(default))
+        attr.default = default
         return True
     elif obj.hasFn(om2.MFn.kEnumAttribute):
         if not isinstance(default, (int, str)):
@@ -643,6 +646,9 @@ def getPlugAndType(plug):
     elif obj.hasFn(om2.MFn.kMessageAttribute):
         return attrtypes.kMFnMessageAttribute, None
 
+    elif obj.hasFn(om2.MFn.kMatrixAttribute):
+        return attrtypes.kMFnDataMatrix, om2.MFnMatrixData(plug.asMObject()).matrix()
+
     if plug.isCompound:
         count = plug.numChildren()
         res = [None] * count, [None] * count
@@ -775,14 +781,23 @@ def setPlugInfoFromDict(plug, **kwargs):
     softMax = kwargs.get("softMax")
     value = kwargs.get("value")
     Type = kwargs.get("Type")
+
     if default is not None and Type is not None:
         if Type == attrtypes.kMFnDataString:
             default = om2.MFnStringData().create(default)
         elif Type == attrtypes.kMFnDataMatrix:
-            default = om2.MFnMatrixData().create(om2.MMatrix(default))
+
+            default = om2.MMatrix(default)
+            value = om2.MMatrix(value)
         elif Type == attrtypes.kMFnUnitAttributeAngle:
             default = om2.MAngle(default, om2.MAngle.kDegrees)
             value = om2.MAngle(value, om2.MAngle.kDegrees)
+        elif Type == attrtypes.kMFnUnitAttributeDistance:
+            default = om2.MDistance(default)
+            value = om2.MDistance(value)
+        elif Type == attrtypes.kMFnUnitAttributeTime:
+            default = om2.MTime(default)
+            value = om2.MTime(value)
         setPlugDefault(plug, default)
     if value is not None and not plug.attribute().hasFn(om2.MFn.kMessageAttribute):
         setPlugValue(plug, value)
@@ -808,11 +823,17 @@ def setPlugValue(plug, value):
     """
 
     if plug.isArray:
-        for i in range(plug.evaluateNumElements()):
+        count = plug.evaluateNumElements()
+        if count != len(value):
+            return
+        for i in range(count):
             setPlugValue(plug.elementByPhysicalIndex(i), value[i])
         return
     elif plug.isCompound:
-        for i in range(plug.numChildren()):
+        count = plug.numChildren()
+        if count != len(value):
+            return
+        for i in range(count):
             setPlugValue(plug.child(i), value[i])
         return
     obj = plug.attribute()
@@ -855,11 +876,13 @@ def setPlugValue(plug, value):
         attr = om2.MFnTypedAttribute(obj)
         at = attr.attrType()
         if at == om2.MFnData.kMatrix:
-            mat = om2.MFnMatrixData().create(value)
+            mat = om2.MFnMatrixData().create(om2.MMatrix(value))
             plug.setMObject(mat)
         elif at == om2.MFnData.kString:
             plug.setString(value)
-
+    elif obj.hasFn(om2.MFn.kMatrixAttribute):
+        mat = om2.MFnMatrixData().create(om2.MMatrix(value))
+        plug.setMObject(mat)
     elif obj.hasFn(om2.MFn.kMessageAttribute) and isinstance(value, om2.MPlug):
         # connect the message attribute
         connectPlugs(plug, value)
@@ -991,6 +1014,8 @@ def plugType(plug):
 
     elif obj.hasFn(om2.MFn.kMessageAttribute):
         return attrtypes.kMFnMessageAttribute
+    elif obj.hasFn(om2.MFn.kMatrixAttribute):
+        return attrtypes.kMFnDataMatrix
     return None
 
 
@@ -1031,7 +1056,7 @@ def mayaTypeToPythonType(mayaType):
     if isinstance(mayaType, (om2.MDistance, om2.MTime, om2.MAngle)):
         return mayaType.value
     elif isinstance(mayaType, (om2.MMatrix, om2.MVector, om2.MPoint)):
-        return type(mayaType)
+        return list(mayaType)
     return mayaType
 
 
