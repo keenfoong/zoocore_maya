@@ -178,7 +178,7 @@ def addConstraintAttribute(node):
                {"name": "utilities", "Type": attrtypes.kMFnMessageAttribute, "isArray": False}]
 
     return om2.MPlug(node, nodes.addCompoundAttribute(node, "constraints", "constraints", attrMap,
-                                                      isArray=True))
+                                                      isArray=True).object())
 
 
 def iterIncomingConstraints(node):

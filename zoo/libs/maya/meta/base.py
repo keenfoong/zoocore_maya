@@ -33,12 +33,14 @@ def lockMetaManager(func):
     @wraps(func)
     def locker(*args, **kwargs):
         node = args[0]
-        if node.mfn().isLocked:
+        setLocked = False
+        if node.isLocked:
             nodes.lockNode(node.mobject(), False)
+            setLocked = True
         try:
             return func(*args, **kwargs)
         finally:
-            if node.exists():
+            if node.exists() and setLocked:
                 nodes.lockNode(node.mobject(), True)
 
     return locker
@@ -94,6 +96,10 @@ def iterSceneMetaNodes():
         t.next()
 
 
+def findMetaNodesByClassType(classType):
+    return [m for m in iterSceneMetaNodes() if m.mClass.asString() == classType]
+
+
 def isMetaNode(node):
     """Determines if the node is a meta node by seeing if the attribute mnode exists and mclass value(classname) is
     within the current meta registry
@@ -113,6 +119,11 @@ def isMetaNode(node):
 
 
 def isConnectedToMeta(node):
+    """Determines if the node is directly connected to a meta node by searching upstream of the node
+
+    :param node: om2.MObject
+    :rtype: bool
+    """
     for dest, source in nodes.iterConnections(node, True, False):
         if isMetaNode(source.node()):
             return True
@@ -243,6 +254,11 @@ class MetaRegistry(object):
 
     @classmethod
     def registryByEnv(cls, env):
+        """Register a set of meta class by environment variable
+
+        :param env:  the environment variable name
+        :type env: str
+        """
         environmentPaths = os.environ.get(env)
         if environmentPaths is None:
             raise ValueError("No environment variable with the name -> {} exists".format(env))
@@ -311,12 +327,11 @@ class MetaBase(object):
         except RuntimeError as er:
             return er
 
-    def __init__(self, node=None, name=None, initDefaults=True):
+    def __init__(self, node=None, name=None, initDefaults=True, lock=False):
         self._createInScene(node, name)
-
         if initDefaults:
             self._initMeta()
-        if not self._mfn.isLocked:
+        if lock and not self._mfn.isLocked:
             self.lock(True)
 
     def _createInScene(self, node, name):
@@ -332,15 +347,28 @@ class MetaBase(object):
     def _initMeta(self):
         """Initializes the standard attributes for the meta nodes
         """
-        self.addAttribute(MCLASS_ATTR_NAME, self.__class__.__name__, attrtypes.kMFnDataString)
-        self.addAttribute(MVERSION_ATTR_NAME, "1.0.0", attrtypes.kMFnDataString)
-        self.addAttribute(MPARENT_ATTR_NAME, None, attrtypes.kMFnMessageAttribute)
-        self.addAttribute(MCHILDREN_ATTR_NAME, None, attrtypes.kMFnMessageAttribute)
+        plugs = []
+        for attrData in self.metaAttributes():
+            plugs.append(self.addAttribute(**attrData))
+        return plugs
+
+    def purgeMetaAttributes(self):
+        attrs = []
+        for attr in self.metaAttributes():
+            attrs.append(plugs.serializePlug(self.attribute(attr["name"])))
+            self.deleteAttribute(attr["name"])
+        return attrs
+
+    def metaAttributes(self):
+        return [{"name": MCLASS_ATTR_NAME, "value": self.__class__.__name__, "Type": attrtypes.kMFnDataString},
+                {"name": MVERSION_ATTR_NAME, "value": "1.0.0", "Type": attrtypes.kMFnDataString},
+                {"name": MPARENT_ATTR_NAME, "value": None, "Type": attrtypes.kMFnMessageAttribute},
+                {"name": MCHILDREN_ATTR_NAME, "value": None, "Type": attrtypes.kMFnMessageAttribute}]
 
     def __getattr__(self, name):
         if name.startswith("_"):
             return super(MetaBase, self).__getattribute__(name)
-        plug = self.getAttribute(name)
+        plug = self.attribute(name)
         if plug is not None:
             if plug.isSource:
                 return [i.node() for i in plug.destinations()]
@@ -383,6 +411,9 @@ class MetaBase(object):
     def __repr__(self):
         return "{}:{}".format(self.__class__.__name__, self.__dict__)
 
+    def mClassType(self):
+        return self.mClass.asString()
+
     def mobject(self):
         """ Returns the mobject attached to this meta node
 
@@ -394,18 +425,23 @@ class MetaBase(object):
         return self._handle.object()
 
     def handle(self):
-        """
+        """ Return's the om2.MObjectHandle of the meta node
+
         :return: Returns the mobjecthandle
         :rtype: MObjectHandle
         """
         return self._handle
 
     def mfn(self):
-        """
+        """ Returns the MFn Function set for the node type
+
         :return: The MFn function set for this node
         :rtype: MFnDagNode or MFnDependencyNode
         """
         return self._mfn
+
+    def dagPath(self):
+        return self._mfn.dagPath()
 
     def fullPathName(self):
         """Returns the fullPath name for the mfn set if the mfn
@@ -434,7 +470,18 @@ class MetaBase(object):
                 self.disconnectFromNode(destination.node())
                 continue
             self.disconnectFromNode(source.node())
+
         cmds.delete(self.fullPathName())
+
+    @lockMetaManager
+    def deleteAttribute(self, attr):
+        plug = self.attribute(attr)
+        if plug:
+            name = plug.name()
+            plug.isLocked = False
+            cmds.deleteAttr(name)
+            return True
+        return False
 
     @lockMetaManager
     def rename(self, name):
@@ -445,15 +492,21 @@ class MetaBase(object):
         """
         cmds.rename(self.fullPathName(), name)
 
+    @property
+    def isLocked(self):
+        """Returns True is this meta node is locked
+        """
+        return self._mfn.isLocked
+
     def lock(self, state):
         """Locks or unlocks the metanode
 
         :param state: True to lock the node else False
         :type state: bool
         """
-        cmds.lockNode(self.fullPathName(), l=state)
+        cmds.lockNode(self.fullPathName(), lock=state)
 
-    def getAttribute(self, name, networked=False):
+    def attribute(self, name, networked=False):
         """Finds and returns the MPlug associated with the attribute on meta node if it exists else None
 
         :param name: the attribute name to find
@@ -470,12 +523,11 @@ class MetaBase(object):
         mobj = self._handle.object()
         mfn = om2.MFnDependencyNode(mobj)
         if mfn.hasAttribute(name):
-            return
+            return mfn.findPlug(name, False)
         try:
-            attr = nodes.addAttribute(mobj, name, name, Type)
-            attr.array = isArray
+            attr = nodes.addAttribute(mobj, name, name, Type, isArray=isArray, apply=True)
         except RuntimeError:
-            return
+            raise ValueError("Failed to create attribute with name: {}".format(name))
         newPlug = None
         if attr is not None:
             newPlug = om2.MPlug(mobj, attr.object())
@@ -487,7 +539,7 @@ class MetaBase(object):
             else:
                 plugs.setPlugValue(newPlug, value)
         newPlug.isLocked = lock
-        return attr
+        return newPlug
 
     def setAttribute(self, attr, value):
         if isinstance(attr, om2.MPlug):
@@ -631,7 +683,7 @@ class MetaBase(object):
         else:
             newAttr = self.addAttribute(attributeName, None, attrtypes.kMFnMessageAttribute)
             if newAttr is not None:
-                sourcePlug = self._mfn.findPlug(newAttr.object(), False)
+                sourcePlug = newAttr
             else:
                 sourcePlug = self._mfn.findPlug(attributeName, False)
         with plugs.setLockedContext(sourcePlug):
@@ -719,6 +771,15 @@ class MetaBase(object):
 
     def metaChildren(self, depthLimit=256):
         return list(self.iterMetaChildren(depthLimit=depthLimit))
+
+    def iterChildren(self, fnFilters=None, includeMeta=False):
+        filterTypes = fnFilters or ()
+        for source, destinations in nodes.iterConnections(self.mobject(), True, False):
+            destNode = destinations.node()
+            if not filterTypes or any(destNode.hasFn(i) for i in filterTypes):
+                if not includeMeta and isMetaNode(destNode):
+                    continue
+                yield destNode
 
     def iterMetaChildren(self, depthLimit=256):
         """This function iterate the meta children by the metaChildren Plug and return the metaBase instances

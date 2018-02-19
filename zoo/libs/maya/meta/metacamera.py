@@ -4,6 +4,12 @@ from zoo.libs.maya.meta import base
 from zoo.libs.maya.api import attrtypes, nodes
 
 
+def iterCameras():
+    for mObj in base.iterSceneMetaNodes():
+        if mObj.hasAttribute("isCamera") and mObj.isCamera.asBool():
+            yield mObj
+
+
 class MetaCamera(base.MetaBase):
     icon = "camera"
 
@@ -15,7 +21,7 @@ class MetaCamera(base.MetaBase):
     def _createInScene(self, node, name):
         if node is None:
             name = "_".join([name or self.__class__.__name__, "meta"])
-            node= nodes.createDagNode(name, "camera")
+            node = nodes.createDagNode(name, "camera")
         self._handle = om2.MObjectHandle(node)
         if node.hasFn(om2.MFn.kDagNode):
             self._mfn = om2.MFnDagNode(node)
@@ -25,14 +31,17 @@ class MetaCamera(base.MetaBase):
         if node.hasFn(om2.MFn.kTransform):
             node = list(nodes.iterChildren(self.mobject(), False, om2.MFn.kCamera))[0]
         self.camMfn = om2.MFnCamera(node)
-    def _initMeta(self):
-        super(MetaCamera, self)._initMeta()
-        self.addAttribute("isCamera", True, attrtypes.kMFnNumericBoolean)
-        self.addAttribute("startFrame", 0, attrtypes.kMFnNumericInt)
-        self.addAttribute("endFrame", 0, attrtypes.kMFnNumericInt)
-        self.addAttribute("framePadding", 10, attrtypes.kMFnNumericInt)
-        self.addAttribute("shotName", "", attrtypes.kMFnDataString)
-        self.addAttribute("camera_version", 1, attrtypes.kMFnNumericInt)
+
+    def metaAttributes(self):
+        baseData = super(MetaCamera, self).metaAttributes()
+        baseData.extend([{"name": "isCamera", "value": True, "Type": attrtypes.kMFnNumericBoolean},
+                         {"name": "shotName", "value": "", "Type": attrtypes.kMFnDataString},
+                         {"name": "startFrame", "value": 0, "Type": attrtypes.kMFnNumericInt},
+                         {"name": "endFrame", "value": 0, "Type": attrtypes.kMFnNumericInt},
+                         {"name": "frameRate", "value": 0, "Type": attrtypes.kMFnNumericDouble},
+                         {"name": "framePadding", "value": 10, "Type": attrtypes.kMFnNumericInt},
+                         {"name": "camera_version", "value": 1, "Type": attrtypes.kMFnNumericInt}])
+        return baseData
 
     @property
     def aspectRatio(self):

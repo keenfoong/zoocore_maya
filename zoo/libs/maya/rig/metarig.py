@@ -70,7 +70,7 @@ class MetaRigBase(base.MetaBase):
 
     def filterSubSystemByName(self, name):
         for subsys in iter(self.subSystems()):
-            if subsys.getAttribute("name").asString() == name:
+            if subsys.name.asString() == name:
                 return subsys
         return None
 
@@ -159,10 +159,11 @@ class MetaRig(MetaRigBase):
         attrname = "_".join([self._rootPrefix, name])
         return self.connectTo(attrname, node)
 
-    def _initMeta(self):
-        super(MetaRig, self)._initMeta()
-        self.addAttribute(name=MetaRig.RIGVERSIONATTR, value="1.0.0", Type=attrtypes.kMFnDataString)
-        self.addAttribute(name=MetaRig.RIGNAMEATTR, value="", Type=attrtypes.kMFnDataString)
+    def metaAttributes(self):
+        baseData = super(MetaRig, self).metaAttributes()
+        baseData.extend([{"name": self.RIGVERSIONATTR, "value": 1, "Type": attrtypes.kMFnNumericInt},
+                         {"name": self.RIGNAMEATTR, "value": "", "Type": attrtypes.kMFnDataString}])
+        return baseData
 
 
 class MetaSupportSystem(MetaRigBase):

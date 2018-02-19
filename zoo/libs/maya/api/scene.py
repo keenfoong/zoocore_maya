@@ -126,7 +126,24 @@ def isPointInView(camera, point, width, height):
 
 
 def serializeNodes(graphNodes, skipAttributes=None, includeConnections=True):
-    return [nodes.serializeNode(n, skipAttributes, includeConnections) for n in graphNodes]
+    rawData = {}
+    for n in graphNodes:
+        nData = nodes.serializeNode(n)
+        curveData = None
+        if n.mobject().hasFn(om2.MFn.kDagNode):
+            curveData = curves.serializeCurve(n, skipAttributes, includeConnections)
+        if curveData:
+            nData["shape"] = curveData
+        rawData[nData["name"]] = nData
+
+    return rawData
+
+
+def serializeSelectedNodes(skipAttributes, includeConnections):
+    selNodes = getSelectedNodes()
+    if selNodes:
+        return serializeNodes(selNodes, skipAttributes=skipAttributes, includeConnections=includeConnections)
+    return {}
 
 
 def deserializeNodes(data):
