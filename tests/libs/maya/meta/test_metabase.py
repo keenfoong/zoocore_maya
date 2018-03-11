@@ -37,8 +37,8 @@ class TestMetaData(mayatestutils.BaseMayaTest):
 
     def test_getAttribute(self):
         self.meta.addAttribute("test", 10.0, attrtypes.kMFnNumericDouble)
-        self.assertIsNotNone(self.meta.getAttribute("test"))
-        self.assertIsInstance(self.meta.getAttribute("test"), om2.MPlug)
+        self.assertIsNotNone(self.meta.attribute("test"))
+        self.assertIsInstance(self.meta.attribute("test"), om2.MPlug)
         with self.assertRaises(AttributeError) as context:
             self.meta.testAttribute
 
