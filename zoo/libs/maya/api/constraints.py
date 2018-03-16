@@ -1,3 +1,4 @@
+import json
 import logging
 
 from maya.api import OpenMaya as om2
@@ -68,7 +69,11 @@ class ParentConstraint(BaseConstraint):
                                       skipTranslate=skipTranslate or [],
                                       weight=1.0, maintainOffset=maintainOffset)
         self.node = om2.MObjectHandle(nodes.asMObject(const[0]))
-        addConstraintMap(driver, (driven,), (self.node.object(),))
+        mapping = dict(skipRotate=skipRotate,
+                       skipTranslate=skipTranslate,
+                       maintainOffset=maintainOffset)
+        kwargsMap = json.dumps(mapping)
+        addConstraintMap(driver, (driven,), (self.node.object(),), kwargsMap=kwargsMap)
         return self.node.object()
 
     def addTarget(self, driver):
@@ -128,13 +133,13 @@ class MatrixConstraint(BaseConstraint):
 
     def create(self, driver, driven, skipScale=None, skipRotate=None, skipTranslate=None, maintainOffset=False):
         composename = "_".join([self.name, "wMtxCompose"])
-        offset = nodes.getOffsetMatrix(driver, driven)
         decompose = creation.createDecompose(composename, destination=driven,
                                              translateValues=skipTranslate,
                                              scaleValues=skipScale, rotationValues=skipRotate)
         decomposeFn = om2.MFnDependencyNode(decompose)
         multMatrix = None
         if maintainOffset:
+            offset = nodes.getOffsetMatrix(driver, driven)
             offsetname = "_".join([self.name, "wMtxOffset"])
 
             multMatrix = creation.createMultMatrix(offsetname,
@@ -145,7 +150,12 @@ class MatrixConstraint(BaseConstraint):
         else:
             plugs.connectPlugs(nodes.worldMatrixPlug(driver), decomposeFn.findPlug("inputMatrix", False))
         self.node = om2.MObjectHandle(decompose)
-        addConstraintMap(driver, (driven,), (decompose, multMatrix))
+        mapping = dict(skipScale=skipScale,
+                       skipRotate=skipRotate,
+                       skipTranslate=skipTranslate,
+                       maintainOffset=maintainOffset)
+        kwargsMap = json.dumps(mapping)
+        addConstraintMap(driver, (driven,), (decompose, multMatrix), kwargsMap=kwargsMap)
         return decompose, multMatrix
 
 
@@ -175,7 +185,8 @@ def addConstraintAttribute(node):
     if mfn.hasAttribute("constraints"):
         return mfn.findPlug("constraints", False)
     attrMap = [{"name": "driven", "Type": attrtypes.kMFnMessageAttribute, "isArray": False},
-               {"name": "utilities", "Type": attrtypes.kMFnMessageAttribute, "isArray": False}]
+               {"name": "utilities", "Type": attrtypes.kMFnMessageAttribute, "isArray": False},
+               {"name": "kwargs", "Type": attrtypes.kMFnDataString, "isArray": False}]
 
     return om2.MPlug(node, nodes.addCompoundAttribute(node, "constraints", "constraints", attrMap,
                                                       isArray=True).object())
@@ -235,7 +246,7 @@ def iterConstraints(node):
             yield [i.node() for i in drivenDest], [i.node() for i in utilDest]
 
 
-def addConstraintMap(node, driven, utilities):
+def addConstraintMap(node, driven, utilities, kwargsMap=None):
     """Adds a mapping of drivers and utilities to the constraint compound array attribute
 
     :param node: The node to add or has the constraint map , typically this would be the driver node
@@ -247,6 +258,7 @@ def addConstraintMap(node, driven, utilities):
     constraint node itself or any math node etc.
     :type utilities: tuple(om2.MObject)
     """
+    kwargsmap = kwargsMap or ""
     mfn = om2.MFnDependencyNode(node)
     if not mfn.hasAttribute("constraints"):
         compoundPlug = addConstraintAttribute(node)
@@ -282,3 +294,6 @@ def addConstraintMap(node, driven, utilities):
             continue
         attr = nodes.addAttribute(i, "constraint", "constraint", attrtypes.kMFnMessageAttribute)
         plugs.connectPlugs(utilPlug, om2.MPlug(i, attr.object()))
+    # set the kwargs map plug, so we know how the constraint was created
+    plugs.setPlugValue(availPlug.child(2), kwargsmap)
+    return compoundPlug

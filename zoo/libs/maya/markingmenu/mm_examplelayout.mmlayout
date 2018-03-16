@@ -9,7 +9,7 @@
       "command": "somecommand.id",
       "commandUi": "somecommandUi.id"
     },
-    "W": "",
+    "W": "@some.layout.id",
     "SW": "",
     "S": "",
     "SE": "",
@@ -21,8 +21,8 @@
         "label": "Testmenu",
         "children": [
           {
-            "type": "python",
-            "command": "print \u0027hello world\u0027",
+            "type": "command",
+            "command": "hive.guides.match",
             "label": "test",
             "optionBox": true,
             "commandUi": "print \u0027optionbox\u0027"

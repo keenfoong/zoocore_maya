@@ -1154,25 +1154,6 @@ def deserializeNode(data, parent=None):
             createdAttributes.append(om2.MPlug(newNode, attr.object()))
     return newNode, createdAttributes
 
-
-def createAnnotation(rootObj, endObj, text=None, name=None):
-    name = name or "annotation"
-    rootDag = om2.MFnDagNode(rootObj)
-    boundingBox = rootDag.boundingBox
-    center = om2.MVector(boundingBox.center)
-    locator = asMObject(cmds.createNode("locator"))
-    locatorTransform = getParent(locator)
-    rename(locatorTransform, "_".join([name, "loc"]))
-    setTranslation(locatorTransform, getTranslation(rootObj, om2.MSpace.kWorld), om2.MSpace.kWorld)
-    annotationNode = asMObject(cmds.annotate(nameFromMObject(locatorTransform), tx=text))
-    annParent = getParent(annotationNode)
-    rename(annParent, name)
-    plugs.setPlugValue(om2.MFnDagNode(annotationNode).findPlug("position", False), center)
-    setParent(locatorTransform, rootObj, True)
-    setParent(annParent, endObj, False)
-    return annotationNode, locatorTransform
-
-
 def setLockStateOnAttributes(node, attributes, state=True):
     """Locks and unlocks the given attributes
 
