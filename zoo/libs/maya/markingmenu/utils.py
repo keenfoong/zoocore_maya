@@ -1,5 +1,6 @@
 from zoo.libs.maya.api import nodes
 from zoo.libs.maya.api import attrtypes
+from zoo.libs.maya.api import plugs
 from zoo.libs.maya.meta import base
 from maya.api import OpenMaya as om2
 
@@ -14,15 +15,29 @@ COMMAND_TYPE = 1
 LAYOUT_TYPE = 2
 
 
-def updateCommandString(node, value):
+def updateCommandString(node, value, commandType=None):
+    """Function to update the node attributes related to the trigger data
+
+    :param node: The node with the trigger attributes to update
+    :type node: om2.MObject
+    :param value:
+    :type value:
+    :param commandType: the command type, see ::func:`createTriggerAttributes` for more information
+    :type commandType: int
+    :return: True if successful
+    :rtype: bool
+    """
     fn = om2.MFnDependencyNode(node)
     if not fn.hasAttribute(TRIGGER_ATTR_NAME):
         return False
     comp = fn.findPlug(TRIGGER_ATTR_NAME, False)
     commandStr = comp.child(1)
-    commandStr.isLocked = False
-    commandStr.setString(value)
-    commandStr.isLocked = True
+    with plugs.setLockedContext(commandStr):
+        commandStr.setString(value)
+    if commandType is not None:
+        commandTypeP = comp.child(0)
+        with plugs.setLockedContext(commandTypeP):
+            commandTypeP.setString(commandType)
     return True
 
 

@@ -33,13 +33,16 @@ class LayoutRegistry(object):
         :param env: the environment variable pointing to the parent directory
         :type env: str
         """
-        paths = os.environ[env].split(os.pathsep)
+        paths = os.environ.get(env, "").split(os.pathsep)
         for p in paths:
             for root, dirs, files in os.walk(p):
                 for f in files:
                     if f.endswith(".mmlayout"):
                         data = file.loadJson(os.path.join(root, f))
                         self.layouts[data["id"]] = Layout(data)
+
+    def registerLayoutData(self, data):
+        self.layouts[data["id"]] = Layout(data)
 
 
 class Layout(object):
