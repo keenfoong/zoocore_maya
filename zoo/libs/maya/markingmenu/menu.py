@@ -1,7 +1,7 @@
 import os
 import pprint
 
-from zoo.libs.pyqt.embed import mayaui
+from zoo.libs.maya.qt import mayaui
 from zoo.libs.utils import file
 from zoo.libs.utils import classtypes
 from zoo.libs.utils import general
