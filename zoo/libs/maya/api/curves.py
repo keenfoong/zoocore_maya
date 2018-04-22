@@ -158,8 +158,8 @@ def iterCurveParams(dagPath, count):
     """
     crvFn = om2.MFnNurbsCurve(dagPath)
     length = crvFn.length()
-    dist = length / float(count - 1)  # account for end point
-    current = 0.001
+    dist = length / float(count)  # account for end point
+    current = 0.1
     for i in xrange(count):
         yield crvFn.findParamFromLength(current)
         current += dist

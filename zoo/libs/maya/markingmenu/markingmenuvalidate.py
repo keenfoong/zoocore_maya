@@ -1,12 +1,17 @@
 import logging
 from zoo.libs.maya.markingmenu import menu, utils
 from zoo.libs.maya.api import nodes, scene
+from maya import cmds
 
 logger = logging.getLogger(__name__)
 
 
 def validateAndBuild(parentMenu, nodeName):
-    triggerNode = nodes.asMObject(nodeName)
+    if cmds.objExists(nodeName):
+        triggerNode = nodes.asMObject(nodeName)
+    else:
+        # ::note should we just check for selection here and validate?
+        return 0
     if not utils.hasTrigger(triggerNode):
         return 0
     triggerNodes = [triggerNode] + scene.getSelectedNodes()

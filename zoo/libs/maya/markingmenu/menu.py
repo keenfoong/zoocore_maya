@@ -273,10 +273,9 @@ class MarkingMenu(object):
     def _buildGeneric(self, data, menu):
         for item in data:
             if item["type"] == "zooCommand":
-                command = self.commandExecutor.findCommand(item)
-                uiData = command.uiData
-                uiData.create(parent=menu)
-                uiData.triggered.connect(self.commandExecutor.execute)
+                command = self.commandExecutor.findCommand(item["command"])
+                commandAction = command.commandAction(uiType=1, parent=menu)
+                commandAction.triggered.connect(self.commandExecutor.execute)
                 continue
             elif item["type"] == "menu":
                 subMenu = cmds.menuItem(label=item["label"], subMenu=True)

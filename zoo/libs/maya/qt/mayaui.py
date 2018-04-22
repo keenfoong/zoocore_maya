@@ -198,8 +198,6 @@ class BootStrapWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         BOOT_STRAPPED_WIDGETS[uid] = self
 
         self.setWindowTitle(title)
-        self.resize(dpiScale(self.INITIAL_SIZE.width()), dpiScale(self.INITIAL_SIZE.height()))
-
         # create a QMainWindow frame that other windows can dock into.
         self.dockingFrame = QtWidgets.QMainWindow(self)
         self.dockingFrame.layout().setContentsMargins(0, 0, 0, 0)
@@ -232,15 +230,10 @@ class BootStrapWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         super(BootStrapWidget, self).close(*args, **kwargs)
 
     def show(self, **kwargs):
-        sizeHint = self.sizeHint()
-        if "width" not in kwargs:
-            kwargs["width"] = sizeHint.width()
         if "widthSizingProperty" not in kwargs:
-            kwargs["widthSizingProperty"] = 'preferred'
-        if "minWidth" not in kwargs:
-            kwargs["minWidth"] = self.minimumSizeHint().width()
-        if "height" not in kwargs:
-            kwargs["height"] = sizeHint.height()
+            kwargs["widthSizingProperty"] = 'free'
+        if "heightProperty" not in kwargs:
+            kwargs["heightProperty"] = 'free'
         kwargs["retain"] = False
         kwargs["uiScript"] = "import zoo.libs.maya.qt.mayaui as zoomayaui\nzoomayaui.rebuild({})".format(
             self.objectName())
