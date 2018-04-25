@@ -305,9 +305,9 @@ class MarkingMenu(object):
                 if command is None:
                     logger.warning("ZooCommand by id:{} doesn't exist".format(data["command"]))
                     continue
-                uiData = command.commandAction(1, parent=menu)
-                cmds.menuItem(uiData.item, e=True, radialPosition=item.upper())
-                uiData.triggered.connect(self.commandExecutor.execute)
+                action = command.commandAction(1, parent=menu)
+                cmds.menuItem(action.item, e=True, radialPosition=item.upper())
+                action.triggered.connect(self.commandExecutor.execute)
 
             elif data["type"] == "python":
                 cmds.menuItem(label=data["label"], optionBox=data.get("optionBox", False),
