@@ -231,6 +231,27 @@ def unlockedAndDisconnectConnectedAttributes(mobject):
         plugs.disconnectPlug(thisNodeP)
 
 
+def containerFromNode(mobj):
+    """Finds and returns the AssetContainer mobject from the give node.
+
+    :param mobj: The om2.MObject representing the node to filter.
+    :type mobj: om2.MObject
+    :return: The container MObject found from the mobject else None
+    :rtype: om2.MObject or None
+    """
+    fn = om2.MFnDependencyNode(mobj)
+    messagePlug = fn.findPlug("message", False)
+    for dest in messagePlug.destinations():
+        node = dest.node()
+        if node.hasFn(om2.MFn.kHyperLayout):
+            continue
+        hyperLayoutMsg = fn.setObject(dest.node()).findPlug("message", False)
+        for possibleObj in hyperLayoutMsg.destinations():
+            node = possibleObj.node()
+            if node.hasFn(om2.MFn.kContainer):
+                return node
+
+
 def childPathAtIndex(path, index):
     """From the given MDagPath return a new MDagPath for the child node at the given index.
 
@@ -452,7 +473,7 @@ def getChildren(mObject, recursive=False, filter=om2.MFn.kTransform):
     :param filter: int(om.MFn.kTransform), the node type to filter by
     :return: list(MFnDagNode)
     """
-    return [i for i in iterChildren(mObject, recursive, filter)]
+    return tuple(iterChildren(mObject, recursive, filter))
 
 
 def iterAttributes(node, skip=None):
@@ -1154,6 +1175,7 @@ def deserializeNode(data, parent=None):
             createdAttributes.append(om2.MPlug(newNode, attr.object()))
     return newNode, createdAttributes
 
+
 def setLockStateOnAttributes(node, attributes, state=True):
     """Locks and unlocks the given attributes
 
@@ -1376,5 +1398,3 @@ def matchTransformSingle(targetPath, source, translation=True, rotation=True, sc
             pos += srcPivot - nodePivot
         fn.setTranslation(pos, space)
     return True
-
-

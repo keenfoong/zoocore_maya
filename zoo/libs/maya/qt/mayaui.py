@@ -193,7 +193,7 @@ class BootStrapWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         self.preferredSize = self.PREFERRED_SIZE
         # bind this instance globally so the maya callback can talk to it
         global BOOT_STRAPPED_WIDGETS
-        uid = "_".join([title, "WorkspaceControl"])
+        uid = title
         self.setObjectName(uid)
         BOOT_STRAPPED_WIDGETS[uid] = self
 
@@ -230,6 +230,10 @@ class BootStrapWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         super(BootStrapWidget, self).close(*args, **kwargs)
 
     def show(self, **kwargs):
+        name = self.objectName()
+        if cmds.workspaceControl(name, query=True, exists=True):
+            cmds.deleteUI(name)
+            cmds.workspaceControlState(name, remove=True)
         if "widthSizingProperty" not in kwargs:
             kwargs["widthSizingProperty"] = 'free'
         if "heightProperty" not in kwargs:
