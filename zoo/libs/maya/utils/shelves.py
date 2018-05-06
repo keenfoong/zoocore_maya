@@ -12,7 +12,7 @@ class Shelf(object):
         self.labelColour = (.9, .9, .9)
 
     def setAsActive(self):
-        cmds.tabLayout(primaryshelfLayout, edit=True, selectTab=self.name)
+        cmds.tabLayout(primaryshelfLayout(), edit=True, selectTab=self.name)
 
     def createShelf(self):
         assert not cmds.shelfLayout(self.name, exists=True), "Shelf by the name {} already exists".format(self.name)
@@ -66,7 +66,7 @@ def cleanOldShelf(shelfName):
 
 
 def primaryshelfLayout():
-    return mel.eval("$gShelfTopLevel;")
+    return mel.eval("$_tempVar = $gShelfTopLevel")
 
 
 def activeShelf():
