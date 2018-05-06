@@ -1,4 +1,7 @@
 import maya.cmds as cmds
+from maya import mel
+from zoo.libs.maya.api import scene, nodes
+from maya.api import OpenMaya as om2
 
 INFO = 0
 WARNING = 1
@@ -42,3 +45,28 @@ def refreshContext():
         yield
     finally:
         cmds.refresh(suppend=False)
+
+
+def selectedChannelboxAttributes():
+    gChannelBoxName = mel.eval('$temp=$gChannelBoxName')
+    attrs = cmds.channelBox(gChannelBoxName, query=True, selectedMainAttributes=True)
+    selectedNodes = scene.getSelectedNodes()
+    if not attrs:
+        return list(), selectedNodes
+    apiPlugs = []
+    for node in selectedNodes:
+        fn = om2.MFnDependencyNode(node)
+        for a in attrs:
+            # is there a a gurnettee that the node has the attribute?
+            if fn.hasAttribute(a):
+                p = fn.findPlug(a, False)
+                apiPlugs.append(p)
+    return apiPlugs, selectedNodes
+
+
+def swapOutgoingConnectionsOnSelectedAttrs():
+    selectedPlugs, selectedNodes = selectedChannelboxAttributes()
+    if len(selectedNodes) != 2:
+        raise ValueError("Must have no more than 2 nodes selected")
+    return nodes.swapOutgoingConnections(selectedNodes[0], selectedNodes[1], selectedPlugs)
+

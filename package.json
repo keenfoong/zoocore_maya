@@ -1,5 +1,6 @@
 {"environment": {"PYTHONPATH": ["{self}"],
                  "ZOO_BASE": "{self}",
+                "ZOO_ICON_PATH": "{self}/icons",
                  "ZOO_COMMAND_LIB":"{self}/zoo/libs/maya/mayacommand/library",
                  "ZOO_META_PATHS":["{self}/zoo/libs/maya/meta/base.py",
                                   "{self}/zoo/libs/maya/meta/metacamera.py",

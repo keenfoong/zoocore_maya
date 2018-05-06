@@ -1,4 +1,4 @@
-from maya import cmds
+from maya import cmds, mel
 
 
 class Shelf(object):
@@ -10,6 +10,9 @@ class Shelf(object):
         self.name = name
         self.labelBackground = (0, 0, 0, 0)
         self.labelColour = (.9, .9, .9)
+
+    def setAsActive(self):
+        cmds.tabLayout(primaryshelfLayout, edit=True, selectTab=self.name)
 
     def createShelf(self):
         assert not cmds.shelfLayout(self.name, exists=True), "Shelf by the name {} already exists".format(self.name)
@@ -25,6 +28,7 @@ class Shelf(object):
                                 doubleClickCommand=doubleCommand, annotation=tooltip or "",
                                 imageOverlayLabel=label, overlayLabelBackColor=self.labelBackground,
                                 overlayLabelColor=self.labelColour, sourceType=Type)
+
     @staticmethod
     def addMenuItem(parent, label, command="", icon=""):
         """Adds a menu item with the specified label, command, and image."""
@@ -59,3 +63,11 @@ def cleanOldShelf(shelfName):
             for each in cmds.shelfLayout(shelfName, query=1, childArray=1):
                 cmds.deleteUI(each)
         cmds.deleteUI(shelfName)
+
+
+def primaryshelfLayout():
+    return mel.eval("$gShelfTopLevel;")
+
+
+def activeShelf():
+    return Shelf(cmds.tabLayout(primaryshelfLayout(), query=True, selectTab=True))
