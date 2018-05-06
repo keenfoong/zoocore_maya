@@ -1398,3 +1398,31 @@ def matchTransformSingle(targetPath, source, translation=True, rotation=True, sc
             pos += srcPivot - nodePivot
         fn.setTranslation(pos, space)
     return True
+
+
+def swapOutgoingConnections(source, destination, plugs=None):
+    """
+    :param source: The source node to transfer connections from
+    :param destination: The destination node to transfer connections to.
+    :param plugs: plug list to to swap, if None is used then all connections will be swapped
+    :rtype: om2.modifier the maya modifier which will require you to call doIt()
+    :todo deal with selected child attributes when only the compound is selected
+    """
+    plugs = plugs or []
+    destFn = om2.MFnDependencyNode(destination)
+    mod = om2.MDGModifier()
+    for sourcePlug, destinationPlug in iterConnections(source, True, False):
+        if plugs and sourcePlug not in plugs:
+            continue
+        name = sourcePlug.partialName(includeNonMandatoryIndices=True, useLongNames=True,
+                                  includeInstancedIndices=True)
+
+        if not destFn.hasAttribute(name):
+            continue
+        targetPlug = destFn.findPlug(sourcePlug.attribute(), False)
+        if destinationPlug.isLocked:
+            destinationPlug.isLocked = False
+        mod.disconnect(sourcePlug, destinationPlug)
+        mod.connect(targetPlug, destinationPlug)
+
+    return mod
