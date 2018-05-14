@@ -12,6 +12,12 @@ from maya import cmds
 logger = zlogging.getLogger(__name__)
 
 
+class InvalidJsonFileFormat(Exception):
+    """Raised in case of invalid formatted json file(.mmlayout)
+    """
+    pass
+
+
 def findLayout(layoutId):
     reg = LayoutRegistry()
     if layoutId in reg.layouts:
@@ -37,9 +43,17 @@ class LayoutRegistry(object):
         for p in paths:
             for root, dirs, files in os.walk(p):
                 for f in files:
-                    if f.endswith(".mmlayout"):
-                        data = file.loadJson(os.path.join(root, f))
-                        self.layouts[data["id"]] = Layout(data)
+                    layoutFile = os.path.join(root, f)
+                    try:
+                        if f.endswith(".mmlayout"):
+                            data = file.loadJson(layoutFile)
+                            self.layouts[data["id"]] = Layout(data)
+                    # If the Json data is invalid(formatted) it will raise a valueError without a file location
+                    # so raise something useful
+                    except ValueError:
+                        raise InvalidJsonFileFormat("Layout file: {} is invalid possibly due to the "
+                                                    "formatting.".format(layoutFile),
+                                                    exc_info=True)
 
     def registerLayoutData(self, data):
         self.layouts[data["id"]] = Layout(data)
@@ -274,6 +288,9 @@ class MarkingMenu(object):
         for item in data:
             if item["type"] == "zooCommand":
                 command = self.commandExecutor.findCommand(item["command"])
+                if command is None:
+                    logger.warning("Failed To find Command: {}".format(item["command"]))
+                    continue
                 commandAction = command.commandAction(uiType=1, parent=menu)
                 commandAction.triggered.connect(self.commandExecutor.execute)
                 continue
