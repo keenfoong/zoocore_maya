@@ -491,6 +491,15 @@ def iterAttributes(node, skip=None):
 
 
 def iterExtraAttributes(node, filteredType=None):
+    """Generator function to iterate over all extra plugs(dynamic) of a given node.
+
+    :param node: The DGNode or DagNode to iterate
+    :type node: om2.MObject
+    :param filteredType:
+    :type filteredType: attrtypes.kType
+    :return: Generator function with each item equaling a om2.MPlug
+    :rtype: om2.MPlug
+    """
     dep = om2.MFnDependencyNode(node)
     for idx in xrange(dep.attributeCount()):
         attr = dep.attribute(idx)
@@ -516,10 +525,10 @@ def iterConnections(node, source=True, destination=True):
     dep = om2.MFnDependencyNode(node)
     for pl in iter(dep.getConnections()):
         if source and pl.isSource:
-            for i in iter(pl.connectedTo(False, True)):
+            for i in iter(pl.destinations()):
                 yield pl, i
         if destination and pl.isDestination:
-            yield pl, pl.connectedTo(True, False)[0]
+            yield pl, pl.source()
 
 
 def iterKeyablePlugs(node):
@@ -581,9 +590,7 @@ def getParent(mobject):
 
 def isValidMObject(node):
     mo = om2.MObjectHandle(node)
-    if not mo.isValid() or not mo.isAlive():
-        return False
-    return True
+    return not mo.isValid() or not mo.isAlive()
 
 
 def delete(node):
@@ -1079,8 +1086,9 @@ def serializeNode(node, skipAttributes=None, includeConnections=True):
 
     """
     dep = om2.MFnDagNode(node) if node.hasFn(om2.MFn.kDagNode) else om2.MFnDependencyNode(node)
-
-    data = {"name": dep.fullPathName() if node.hasFn(om2.MFn.kDagNode) else dep.name(),
+    name = (dep.fullPathName() if node.hasFn(om2.MFn.kDagNode) else dep.name())
+    name = name.replace(om2.MNamespace.getNamespaceFromName(name).split("|")[-1] + ":", "")
+    data = {"name": name,
             "type": dep.typeName,
             }
     req = dep.pluginName
@@ -1142,18 +1150,19 @@ def deserializeNode(data, parent=None):
     """
     nodeName = data["name"].split("|")[-1]
     nodeType = data["type"]
-    parentData = data.get("parent")
-    req = data.get("requirements", ())
-    for r in iter(req):
+    req = data.get("requirements", "")
+    if req and not cmds.pluginInfo(req, loaded=True):
         try:
-            cmds.loadPlugin(r)
+            cmds.loadPlugin(req)
         except RuntimeError:
-            logger.error("Could not load plugin->{}".format(r), exc_info=True)
+            logger.error("Could not load plugin->{}".format(req), exc_info=True)
             return
-    if parentData:
+
+    if "parent" in data:
         newNode = createDagNode(nodeName, nodeType, parent)
     else:
         newNode = createDGNode(nodeName, nodeType)
+    nodeName = nameFromMObject(newNode)
     plugList = om2.MSelectionList()
     createdAttributes = []
     for attrData in data.get("attributes", tuple()):
@@ -1165,7 +1174,10 @@ def deserializeNode(data, parent=None):
         except RuntimeError:
             found = False
         if found:
-            plugs.setPlugInfoFromDict(plugList.getPlug(plugList.length() - 1), **attrData)
+            try:
+                plugs.setPlugInfoFromDict(plugList.getPlug(plugList.length() - 1), **attrData)
+            except RuntimeError:
+                logger.error("Failed to set plug data: {}".format(fullName), exc_info=True)
         else:
             children = attrData.get("children")
             if children:

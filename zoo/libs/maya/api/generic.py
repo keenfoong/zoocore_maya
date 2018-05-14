@@ -1,6 +1,14 @@
 from maya.api import OpenMaya as om2
 
 
+class MObjectHandleWrap(om2.MObjectHandle):
+    """Simple class to do what Autodesk should of done, this class makes the
+    MObjectHandle hashable so it can be used in sets and dicts correctly.
+    """
+    def __hash__(self):
+        return self.hashCode()
+
+
 def isValidMObjectHandle(mObjHandle):
     """Checks whether the MObjectHandle is valid in the scene and still alive
 
