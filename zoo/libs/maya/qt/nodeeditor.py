@@ -1,7 +1,6 @@
 from maya import cmds
 from zoo.libs.maya.qt import mayaui
 from qt import QtWidgets, QtCore
-import weakref
 
 
 def getPrimaryNodeEditor():

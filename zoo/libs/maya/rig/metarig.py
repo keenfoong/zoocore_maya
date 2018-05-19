@@ -63,7 +63,7 @@ class MetaRigBase(base.MetaBase):
         return self.findConnectedNodesByAttributeName(self._jntPrefix, recursive=recursive)
 
     def skinJoints(self, recursive):
-        return self.findConnectedNodesByAttributeName(self._jntPrefix, recursive=recursive)
+        return self.findConnectedNodesByAttributeName(self._skinJntPrefix, recursive=recursive)
 
     def geo(self, recursive=True):
         return self.findConnectedNodesByAttributeName(self._geoPrefix, recursive=recursive)
