@@ -83,6 +83,7 @@ def getNodesCreatedBy(function, *args, **kwargs):
 def iterDag(root, includeRoot=True, nodeType=None):
     """Generator function to walk the node hierarchy, if a nodeType is provided then the function will only return
     that mobject apitype.
+
     :param root: the root dagnode to loop
     :type root: MObject
     :param includeRoot: if true include the root mobject
@@ -261,7 +262,7 @@ def dgIterator(*args, **kwargs):
 
     >>> mesh = asMObject("pCube1")
     >>> for dgIter in dgIterator(mesh, om2.MFn.kSkinClusterFilter, om2.MItDependencyGraph.kUpstream):
-            dgIter.currentNode()
+    ...     dgIter.currentNode()
     """
     iterator = om2.MItDependencyGraph(*args, **kwargs)
     while not iterator.isDone():
@@ -269,3 +270,25 @@ def dgIterator(*args, **kwargs):
             yield iterator
         finally:
             iterator.next()
+
+
+def iterReferences():
+    """Generator function that returns a Mobject for each valid referene node.
+
+    :return: Generator function with each element representing the reference node
+    :rtype: Generator(om2.MObject)
+    """
+    iterator = om2.MItDependencyNodes(om2.MFn.kReference)
+
+    while not iterator.isDone():
+        try:
+            fn = om2.MFnReference(iterator.thisNode())
+            try:
+                if not fn.isLoaded() or fn.isLocked():
+                    continue
+            except RuntimeError:
+                continue
+            yield fn.object()
+        finally:
+            iterator.next()
+

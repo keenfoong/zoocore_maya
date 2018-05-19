@@ -19,19 +19,12 @@ def asMObject(name):
     :rtype: MObject
 
     """
-    if isinstance(name, basestring):
-        sel = om2.MSelectionList()
-        sel.add(name)
-        try:
-            return sel.getDagPath(0).node()
-        except TypeError:
-            return sel.getDependNode(0)
-    elif isinstance(name, om2.MObject):
-        return name
-    elif isinstance(name, om2.MObjectHandle):
-        return name.object()
-    elif isinstance(name, om2.MDagPath):
-        return name.node()
+    sel = om2.MSelectionList()
+    sel.add(name)
+    try:
+        return sel.getDagPath(0).node()
+    except TypeError:
+        return sel.getDependNode(0)
 
 
 def nameFromMObject(mobject, partialName=False, includeNamespace=True):
@@ -54,7 +47,6 @@ def nameFromMObject(mobject, partialName=False, includeNamespace=True):
     """
     if mobject.hasFn(om2.MFn.kDagNode):
         if partialName:
-
             name = om2.MFnDagNode(mobject).partialPathName()
         else:
             name = om2.MFnDagNode(mobject).fullPathName()
@@ -287,21 +279,23 @@ def childPathsByFn(path, fn):
     """
     return [p for p in childPaths(path) if p.hasFn(fn)]
 
-
-def shapes(path, filterTypes=()):
-    """Returns all the shape dagpaths directly below this dagpath
+def iterShapes(path, filterTypes=()):
+    """Generator function which all the shape dagpaths directly below this dagpath
 
     :param path: The MDagPath to search
     :return: list(MDagPath)
     """
-    paths = []
     for i in xrange(path.numberOfShapesDirectlyBelow()):
         dagPath = om2.MDagPath(path)
         dagPath.extendToShape(i)
         if not filterTypes or dagPath.apiType() in filterTypes:
-            paths.append(dagPath)
-    return paths
+            yield dagPath
 
+def shapes(path, filterTypes=()):
+    """
+    :Depreciated Use IterShapes()
+    """
+    return list(iterShapes(path, filterTypes))
 
 def shapeAtIndex(path, index):
     """Finds and returns the shape DagPath under the specified path for the index
@@ -378,19 +372,30 @@ def hasParent(mobject):
     return True
 
 
-def rename(mobject, newName):
-    """Renames the given mobject node, this is undoable
+def rename(mobject, newName, modifier=None):
+    """Renames the given mobject node, this is undoable.
 
-    :param mobject: MObject
-    :param newName: str
+    :param mobject: the node to rename
+    :type mobject: om2.MObject
+    :param newName: the new unique name for the node
+    :type newName: str
+    :param modifier: if you pass a instance then
+    the rename will be added to the queue then returned otherwise a new instance will be created and
+    immediately executed.
+    :type modifier: om2.MDGModifier or None
+    :note: If you pass a MDGModfifier then you should call doIt() after callig this function
     """
-    dag = om2.MDGModifier()
+    dag = modifier or om2.MDGModifier()
     dag.renameNode(mobject, newName)
-    dag.doIt()
+    # if a modifier is passed into the function then let the user deal with DoIt
+    if modifier is None:
+        dag.doIt()
+    return dag
 
 
 def parentPath(path):
     """Returns the parent nodes MDagPath
+
     :param path: child DagPath
     :type path: MDagpath
     :return: MDagPath, parent of path or None if path is in the scene root.
@@ -456,7 +461,7 @@ def iterChildren(mObject, recursive=False, filter=None):
 
 
 def breadthFirstSearchDag(node, filter=None):
-    ns = [i for i in iterChildren(node, False, filter=filter)]
+    ns = tuple(iterChildren(node, False, filter=filter))
     if not ns:
         return
     yield ns

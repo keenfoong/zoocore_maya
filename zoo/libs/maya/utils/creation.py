@@ -511,13 +511,3 @@ def createPlusMinusAverage3D(name, inputs, output=None, operation=1):
                 continue
             plugs.connectPlugs(ouPlug, out)
     return pma
-
-
-
-
-
-def graphSerialize(graphNodes):
-    data = []
-    for i in iter(graphNodes):
-        data.append(nodes.serializeNode(i))
-    return data

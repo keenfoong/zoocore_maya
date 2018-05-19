@@ -1,7 +1,8 @@
 import os
 import contextlib
-
 from maya import cmds
+from zoo.libs.maya.api import scene
+
 
 def findAdditionalSceneDependencies(references=True, textures=True):
     """
@@ -59,11 +60,9 @@ def findSceneReferences():
     paths = set()
 
     # first let's look at maya references
-    ref_nodes = cmds.ls(references=True)
-    for ref_node in ref_nodes:
+    for ref_node in scene.iterReferences():
         # get the path:
-        ref_path = cmds.referenceQuery(ref_node, filename=True)
-        ref_path = ref_path.replace("/", os.path.sep)
+        ref_path = ref_node.fileName(True, False, False).replace("/", os.path.sep)
         if ref_path:
             paths.add(ref_path)
     return paths

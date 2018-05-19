@@ -11,7 +11,7 @@ def createCamera(name, start, end, focalLength=35.000,
                          horizontalFilmAperture=1.682):
     # returns the camera transform
     camObj = nodes.createDagNode(name, "camera")
-    camObj = [i for i in nodes.iterChildren(camObj, False, om2.MFn.kCamera)]
+    camObj = list(nodes.iterChildren(camObj, False, om2.MFn.kCamera))
     # expectation that the camera was created an the transform was returned above
     # add the meta camera data
     meta = metacamera.MetaCamera(camObj[0])
