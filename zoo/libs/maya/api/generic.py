@@ -4,6 +4,9 @@ from maya.api import OpenMaya as om2
 class MObjectHandleWrap(om2.MObjectHandle):
     """Simple class to do what Autodesk should of done, this class makes the
     MObjectHandle hashable so it can be used in sets and dicts correctly.
+    ::note maya's documentation says >, >=, <, <= but this isn't true at all
+    part from the errors the c++ docs don't specify it so c++ is right, geez get
+    your shit right.
     """
     def __hash__(self):
         return self.hashCode()

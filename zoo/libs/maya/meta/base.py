@@ -52,7 +52,7 @@ def findSceneRoots():
     :return:
     :rtype: list()
     """
-    return [meta for meta in iterSceneMetaNodes() if not meta.metaParent()]
+    return [meta for meta in iterSceneMetaNodes() if not list(meta.metaParents())]
 
 
 def filterSceneByAttributeValues(attributeNames, filter):
@@ -87,6 +87,7 @@ def iterSceneMetaNodes():
 
     :rtype: Generator(MObject)
     """
+    #todo: add a nodetype filter
     t = om2.MItDependencyNodes()
     while not t.isDone():
         node = t.thisNode()
@@ -362,8 +363,9 @@ class MetaBase(object):
     def metaAttributes(self):
         return [{"name": MCLASS_ATTR_NAME, "value": self.__class__.__name__, "Type": attrtypes.kMFnDataString},
                 {"name": MVERSION_ATTR_NAME, "value": "1.0.0", "Type": attrtypes.kMFnDataString},
-                {"name": MPARENT_ATTR_NAME, "value": None, "Type": attrtypes.kMFnMessageAttribute},
-                {"name": MCHILDREN_ATTR_NAME, "value": None, "Type": attrtypes.kMFnMessageAttribute}]
+                {"name": MPARENT_ATTR_NAME, "value": None, "Type": attrtypes.kMFnMessageAttribute, "isArray":True,
+                 "lock":False},
+                {"name": MCHILDREN_ATTR_NAME, "value": None, "Type": attrtypes.kMFnMessageAttribute, "lock":False}]
 
     def __getattr__(self, name):
         if name.startswith("_"):
@@ -752,25 +754,21 @@ class MetaBase(object):
         return False
 
     def metaRoot(self):
-        parent = self.metaParent()
-        while parent is not None:
-            coParent = parent.metaParent()
-            if coParent is not None and coParent.root.asBool():
-                return coParent
-            parent = coParent
+        for currentParent in self.metaParents():
+            parent = currentParent
+            while parent is not None:
+                coParents = parent.metaParents()
+                for coParent in coParents:
+                    if coParent.root.asBool():
+                        return coParent
+                parent = coParent
 
-    def metaParent(self):
+    def metaParents(self):
         parentPlug = self._mfn.findPlug(MPARENT_ATTR_NAME, False)
-        if parentPlug.isConnected:
-            return MetaBase(parentPlug.connectedTo(True, False)[0].node())
-
-    def iterParents(self, depthLimit=256):
-        parentPlug = self._mfn.findPlug(MPARENT_ATTR_NAME, False)
-        for parent in plugs.iterDependencyGraph(parentPlug, depthLimit=depthLimit, transverseType="up"):
-            yield MetaBase(parent.node())
-
-    def metaChildren(self, depthLimit=256):
-        return list(self.iterMetaChildren(depthLimit=depthLimit))
+        for i in xrange(parentPlug.evaluateNumElements()):
+            childrenElement = parentPlug.elementByPhysicalIndex(i)
+            if childrenElement.isConnected:
+                yield MetaBase(childrenElement.source().node())
 
     def iterChildren(self, fnFilters=None, includeMeta=False):
         filterTypes = fnFilters or ()
@@ -821,12 +819,10 @@ class MetaBase(object):
         :param parent: The meta node to add as the parent of this meta node 
         :type parent: MetaBase
         """
-        metaParent = self.metaParent()
-        if metaParent is not None or metaParent == parent:
-            self.removeParent()
         parentPlug = self._mfn.findPlug(MPARENT_ATTR_NAME, False)
+        nextElement = plugs.nextAvailableDestElementPlug(parentPlug)
         with plugs.setLockedContext(parentPlug):
-            plugs.connectPlugs(parent.findPlug(MCHILDREN_ATTR_NAME, False), parentPlug)
+            plugs.connectPlugs(parent.findPlug(MCHILDREN_ATTR_NAME, False), nextElement)
 
     def findChildrenByFilter(self, filter, plugName=None, depthLimit=256):
         children = []
@@ -859,36 +855,22 @@ class MetaBase(object):
                 children.extend([i for i in child.allChildrenNodes() if i not in children])
         return children
 
-    def removeParent(self):
-        parent = self.metaParent()
-        if parent is None:
-            return False
-        mod = om2.MDGModifier()
-        source = parent.findPlug(MCHILDREN_ATTR_NAME, False)
-        destination = self.findPlug(MPARENT_ATTR_NAME, False)
-        with plugs.setLockedContext(source):
-            destination.isLocked = False
-            mod.disconnect(source, destination)
-            mod.doIt()
-        return True
-
-    def removeChild(self, node):
-        """Removes the meta child from this node which should currently be the meta parent
-
-        :param node:
-        :type node: MObject or MetaBase instance
-        :return: True if removed
+    def removeParent(self, parent=None):
+        """
+        :param parent: The meta class to remove, if set to None then all parents will be removed
+        :type parent: ::class:`MetaBase` or None
         :rtype: bool
         """
-        if isinstance(node, MetaBase):
-            node.removeParent()
-            return True
-        childPlug = self._mfn.findPlug(MCHILDREN_ATTR_NAME, False)
+        parentPlug = self._mfn.findPlug(MPARENT_ATTR_NAME, False)
         mod = om2.MDGModifier()
-        destination = om2.MFnDependencyNode(node).findPlug(MPARENT_ATTR_NAME, False)
-        with plugs.setLockedContext(childPlug):
-            destination.isLocked = False
-        mod.disconnect(childPlug, destination)
+        with plugs.setLockedContext(parentPlug):
+            for i in xrange(parentPlug.evaluateNumElements()):
+                childrenElement = parentPlug.elementByPhysicalIndex(i)
+                if childrenElement.isConnected:
+                    mb = MetaBase(childrenElement.source().node())
+                    if mb == parent or parent is None:
+                        mod.disconnect(childrenElement.source(), childrenElement)
+                        mod.removeMultiInstance(childrenElement, False)
         mod.doIt()
         return True
 

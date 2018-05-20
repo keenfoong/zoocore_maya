@@ -48,7 +48,7 @@ def connectPlugs(source, destination, mod=None, force=True):
     return _mod
 
 
-def connectVectorPlugs(sourceCompound, destinationCompound, connectionValues, force=True):
+def connectVectorPlugs(sourceCompound, destinationCompound, connectionValues, force=True, modifier=None):
     """
 
     :param sourceCompound:
@@ -61,7 +61,7 @@ def connectVectorPlugs(sourceCompound, destinationCompound, connectionValues, fo
     :rtype:
     """
     if all(connectionValues):
-        connectPlugs(sourceCompound, destinationCompound, force=force)
+        connectPlugs(sourceCompound, destinationCompound, mod=modifier, force=force)
         return
     childCount = destinationCompound.numChildren()
     sourceCount = sourceCompound.numChildren()
@@ -69,7 +69,7 @@ def connectVectorPlugs(sourceCompound, destinationCompound, connectionValues, fo
     if childCount < requestLength or sourceCount < requestLength:
         raise ValueError("ConnectionValues arg count is larger then the compound child count")
 
-    mod = om2.MDGModifier()
+    mod = modifier or om2.MDGModifier()
     for i in xrange(len(connectionValues)):
         value = connectionValues[i]
         childSource = sourceCompound.child(i)
@@ -80,6 +80,7 @@ def connectVectorPlugs(sourceCompound, destinationCompound, connectionValues, fo
             continue
         connectPlugs(childSource, childDest, mod=mod, force=force)
     mod.doIt()
+    return mod
 
 
 def disconnectPlug(plug, source=True, destination=True):
@@ -786,7 +787,6 @@ def setPlugInfoFromDict(plug, **kwargs):
         if Type == attrtypes.kMFnDataString:
             default = om2.MFnStringData().create(default)
         elif Type == attrtypes.kMFnDataMatrix:
-
             default = om2.MMatrix(default)
             value = om2.MMatrix(value)
         elif Type == attrtypes.kMFnUnitAttributeAngle:
