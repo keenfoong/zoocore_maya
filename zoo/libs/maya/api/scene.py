@@ -163,62 +163,64 @@ class GraphDeserializer(dict):
         self.results = {}
 
     def process(self, nodeMap):
+        """
+        :param nodeMap: {nodeName: om2.MObject}
+        :type nodeMap: dict
+        :return:
+        :rtype:
+        """
         self.results.update(nodeMap)
         connections = []
         for k, n in self.items():
             # skip any currently processed nodes.
-            if k in self.results:
-                continue
-            parent = n.get("parent")
-            parentNode = None
-            # if we have a parentNode that means we're a Dag node, so try to resolve the parent,
+            if k not in self.results:
+                parent = n.get("parent")
+                parentNode = None
+                # if we have a parentNode that means we're a Dag node, so try to resolve the parent,
+                if parent:
+                    parentNode = self.results.get(parent)
+                    # if we have come across the parent before it should already have been process so skip
+                    if parentNode is None and parent in self:
+                        # ok in this case we have visited the parent so process it
+                        parentData = self[parent]
+                        parentNode, attrs = nodes.deserializeNode(parentData,
+                                                                  self.results.get(self[parent]["parent"]))
+                        shapeData = parentData.get("shape")
+                        if shapeData:
+                            curves.createCurveShape(parentNode, shapeData)
+                        self.results[parent] = parentNode
+                        connections.extend(parentData.get("connections", []))
 
-            if parent:
-                parentNode = self.results.get(parent)
-                # if we have come across the parent before it should already have been process so skip
-                if parentNode is None and parent in self:
-                    # ok in this case we have visited the parent so process it
-                    parentData = self[parent]
-                    parentNode, attrs = nodes.deserializeNode(parentData,
-                                                              self.results.get(self[parent]["parent"]))
-                    shapeData = parentData.get("shape")
-                    if shapeData:
-                        curves.createCurveShape(parentNode, shapeData)
-                    self.results[parent] = parentNode
-                    connections.extend(parentData.get("connections", []))
-
-            newNode, attrs = nodes.deserializeNode(n, parentNode)
-            shapeData = n.get("shape")
-            if shapeData:
-                curves.createCurveShape(parentNode, shapeData)
-            self.results[k] = newNode
-            connections.extend(n.get("connections", []))
+                newNode, attrs = nodes.deserializeNode(n, parentNode)
+                shapeData = n.get("shape")
+                if shapeData:
+                    curves.createCurveShape(parentNode, shapeData)
+                self.results[k] = newNode
+            else:
+                newNode = self.results[k]
+            # remap the connection destination and destinationPlug to be the current node plus plug
+            currentConnections = n.get("connections", [])
+            for conn in currentConnections:
+                conn["destination"] = newNode
+                conn["destinationPlug"] = plugs.asMPlug(nodes.nameFromMObject(newNode) + "." + conn["destinationPlug"])
+            connections.extend(currentConnections)
         if connections:
+            for conn in connections:
+                if conn["source"] in self.results:
+                    conn["source"] = self.results[conn["source"]]
+                conn["sourcePlug"] = plugs.asMPlug(nodes.nameFromMObject(conn["source"]) + "." + conn["sourcePlug"])
             self._deserializeConnections(connections)
 
     def _deserializeConnections(self, connections):
-        plugList = om2.MSelectionList()
+        # plugList = om2.MSelectionList()
         for conn in connections:
-            sourceNode = self.results.get(conn["source"])
-            destinationNode = self.results.get(conn["destination"])
+            sourceNode = conn["source"]
+            destinationNode = conn["destination"]
             if sourceNode is None or destinationNode is None:
                 continue
-            fn = om2.MFnDependencyNode(sourceNode)
-            destFn = om2.MFnDependencyNode(destinationNode)
-            if fn.hasAttribute(conn["sourcePlug"]):
-                sourcePlug = fn.findPlug(conn["sourcePlug"], False)
-            else:
-                plugList.add(".".join([nodes.nameFromMObject(sourceNode), conn["sourcePlug"]]))
-                sourcePlug = plugList.getPlug(plugList.length() - 1)
-            if destFn.hasAttribute(conn["destinationPlug"]):
-                destinationPlug = destFn.findPlug(conn["destinationPlug"], False)
-            else:
-                plugList.add(".".join([nodes.nameFromMObject(destinationNode), conn["destinationPlug"]]))
-
-                destinationPlug = plugList.getPlug(plugList.length() - 1)
             try:
-                plugs.connectPlugs(sourcePlug, destinationPlug, force=True)
-            except RuntimeError:
+                plugs.connectPlugs(conn["sourcePlug"], conn["destinationPlug"], force=True)
+            except RuntimeError as er:
                 continue
 
 
