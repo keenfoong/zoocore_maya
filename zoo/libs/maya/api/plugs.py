@@ -83,7 +83,7 @@ def connectVectorPlugs(sourceCompound, destinationCompound, connectionValues, fo
     return mod
 
 
-def disconnectPlug(plug, source=True, destination=True):
+def disconnectPlug(plug, source=True, destination=True, modifier=None):
     """Disconnect the plug connections, if 'source' is True and the 'plug' is a destination then disconnect the source
     from this plug. If 'destination' True and plug is a source then disconnect this plug from the destination.
     This function will also lock the plugs otherwise maya raises an error
@@ -100,7 +100,7 @@ def disconnectPlug(plug, source=True, destination=True):
     """
     if plug.isLocked:
         plug.isLocked = False
-    mod = om2.MDGModifier()
+    mod = modifier or om2.MDGModifier()
     if source and plug.isDestination:
         sourcePlug = plug.source()
         if sourcePlug.isLocked:
@@ -111,8 +111,9 @@ def disconnectPlug(plug, source=True, destination=True):
             if conn.isLocked:
                 conn.isLocked = False
             mod.disconnect(plug, conn)
-    mod.doIt()
-    return True
+    if not modifier:
+        mod.doIt()
+    return True, mod
 
 
 def removeElementPlug(plug, elementNumber, mod=None, apply=False):
@@ -284,10 +285,13 @@ def serializePlug(plug):
     data = {"isDynamic": plug.isDynamic}
     attrType = plugType(plug)
     if not plug.isDynamic:
+
         # skip any default attribute that hasn't changed value, this could be a tad short sighted since other state
         # options can change, also skip array attributes since we still pull the elements if the value has changed
         if plug.isDefaultValue() or plug.isArray:
             return dict()
+        elif plug.isCompound:
+            data["children"] = [serializePlug(plug.child(i)) for i in range(plug.numChildren())]
     else:
         if plug.isCompound:
             data["children"] = [serializePlug(plug.child(i)) for i in range(plug.numChildren())]
@@ -409,7 +413,9 @@ def setPlugDefault(plug, default):
     obj = plug.attribute()
     if obj.hasFn(om2.MFn.kNumericAttribute):
         attr = om2.MFnNumericAttribute(obj)
-        attr.default = default
+        Type = attr.numericType()
+        attr.default = tuple(default) if Type in (om2.MFnNumericData.k2Double, om2.MFnNumericData.k3Double,
+                                                  om2.MFnNumericData.k4Double) else default
         return True
     elif obj.hasFn(om2.MFn.kTypedAttribute):
         if not isinstance(default, om2.MObject):
@@ -749,7 +755,7 @@ def getTypedValue(plug):
 
 
 def setPlugInfoFromDict(plug, **kwargs):
-    """Sets the standard plug settings.
+    """Sets the standard plug settings via a dict.
 
     :param plug: The Plug to change
     :type plug: om2.MPlug
@@ -769,12 +775,27 @@ def setPlugInfoFromDict(plug, **kwargs):
             "name": "scale",
             "softMax": None,
             "softMin": None,
-            "value": 1.0
+            "value": 1.0,
+            "children": [{}] # in the same format as the parent info
           }
         >>> somePLug = om2.MPlug()
         >>> setPlugInfoFromDict(somePlug, **data)
 
     """
+    children = kwargs.get("children")
+    # in the case we have child and just to ensure we dont crash we check to make sure the requested plug is
+    # a compound.
+    if children and plug.isCompound:
+        # cache the childCount
+        childCount = plug.numChildren()
+        # now iterate the children data which contains a dict which is in the format
+        for i, childInfo in enumerate(children):
+            # it's possible that no data was passed for this child so skip
+            if not childInfo:
+                continue
+            # ensure the child index exists
+            if i in range(childCount):
+                setPlugInfoFromDict(plug.child(i), **childInfo)
     default = kwargs.get("default")
     min = kwargs.get("min")
     max = kwargs.get("max")
@@ -782,7 +803,6 @@ def setPlugInfoFromDict(plug, **kwargs):
     softMax = kwargs.get("softMax")
     value = kwargs.get("value")
     Type = kwargs.get("Type")
-
     if default is not None and Type is not None:
         if Type == attrtypes.kMFnDataString:
             default = om2.MFnStringData().create(default)
@@ -880,6 +900,7 @@ def setPlugValue(plug, value):
             plug.setMObject(mat)
         elif at == om2.MFnData.kString:
             plug.setString(value)
+
     elif obj.hasFn(om2.MFn.kMatrixAttribute):
         mat = om2.MFnMatrixData().create(om2.MMatrix(value))
         plug.setMObject(mat)
@@ -1028,7 +1049,6 @@ def getPythonTypeFromPlugValue(plug):
              attrtypes.kMFnNumeric2Long, attrtypes.kMFnNumeric2Short, attrtypes.kMFnNumeric3Double,
              attrtypes.kMFnNumeric3Int, attrtypes.kMFnNumeric3Long, attrtypes.kMFnNumeric3Short,
              attrtypes.kMFnNumeric4Double)
-
     if dataType is None:
         return None
     elif isinstance(dataType, (list, tuple)):

@@ -60,6 +60,10 @@ def createTriggerAttributes(node, commandType, command):
          "locked": True},
         {"name": COMMAND_ATTR_NAME, "Type": attrtypes.kMFnDataString, "isArray": False, "value": command,
          "locked": True}]
+    fn = om2.MFnDependencyNode(node)
+    # todo: should check each attr and add the missing?
+    if fn.hasAttribute(TRIGGER_ATTR_NAME):
+        return fn.findPlug(TRIGGER_ATTR_NAME, False).attribute()
     return nodes.addCompoundAttribute(node, TRIGGER_ATTR_NAME, TRIGGER_ATTR_NAME, children, False)
 
 

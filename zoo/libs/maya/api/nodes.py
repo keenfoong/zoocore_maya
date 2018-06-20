@@ -631,8 +631,7 @@ def getMatrix(mobject):
 
 def worldMatrixPlug(mobject):
     wm = om2.MFnDependencyNode(mobject).findPlug("worldMatrix", False)
-    wm.evaluateNumElements()
-    return wm.elementByPhysicalIndex(0)
+    return wm.elementByLogicalIndex(0)
 
 
 def getWorldMatrix(mobject):
@@ -1102,12 +1101,14 @@ def serializeNode(node, skipAttributes=None, includeConnections=True):
     if node.hasFn(om2.MFn.kDagNode):
         data["parent"] = om2.MFnDagNode(dep.parent(0)).fullPathName()
     attributes = []
+    visited = []
     for pl in iterAttributes(node, skip=skipAttributes):
-        if (pl.isDefaultValue() and not pl.isConnected) or pl.isChild:
+        if pl in visited or (pl.isDefaultValue() and not pl.isConnected) or pl.isChild:
             continue
         attrData = plugs.serializePlug(pl)
         if attrData:
             attributes.append(attrData)
+        visited.append(pl)
 
     if includeConnections:
         connections = []
@@ -1154,14 +1155,16 @@ def deserializeNode(data, parent=None):
     :rtype: tuple(MObject, list(om2.MPlug))
     """
     nodeName = data["name"].split("|")[-1]
-    nodeType = data["type"]
+    nodeType = data.get("type")
+    if nodeType is None:
+        return None, []
     req = data.get("requirements", "")
     if req and not cmds.pluginInfo(req, loaded=True):
         try:
             cmds.loadPlugin(req)
         except RuntimeError:
             logger.error("Could not load plugin->{}".format(req), exc_info=True)
-            return
+            return None, []
 
     if "parent" in data:
         newNode = createDagNode(nodeName, nodeType, parent)

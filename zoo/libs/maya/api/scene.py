@@ -170,6 +170,7 @@ class GraphDeserializer(dict):
         :rtype:
         """
         self.results.update(nodeMap)
+        createdNodes = []
         connections = []
         for k, n in self.items():
             # skip any currently processed nodes.
@@ -186,12 +187,14 @@ class GraphDeserializer(dict):
                         parentNode, attrs = nodes.deserializeNode(parentData,
                                                                   self.results.get(self[parent]["parent"]))
                         shapeData = parentData.get("shape")
+                        createdNodes.append(parentNode)
                         if shapeData:
                             curves.createCurveShape(parentNode, shapeData)
                         self.results[parent] = parentNode
                         connections.extend(parentData.get("connections", []))
 
                 newNode, attrs = nodes.deserializeNode(n, parentNode)
+                createdNodes.append(newNode)
                 shapeData = n.get("shape")
                 if shapeData:
                     curves.createCurveShape(parentNode, shapeData)
@@ -208,8 +211,12 @@ class GraphDeserializer(dict):
             for conn in connections:
                 if conn["source"] in self.results:
                     conn["source"] = self.results[conn["source"]]
-                conn["sourcePlug"] = plugs.asMPlug(nodes.nameFromMObject(conn["source"]) + "." + conn["sourcePlug"])
+                source = conn["source"]
+                if isinstance(conn["source"], om2.MObject):
+                    source = nodes.nameFromMObject(conn["source"])
+                conn["sourcePlug"] = plugs.asMPlug(source + "." + conn["sourcePlug"])
             self._deserializeConnections(connections)
+        return createdNodes
 
     def _deserializeConnections(self, connections):
         # plugList = om2.MSelectionList()

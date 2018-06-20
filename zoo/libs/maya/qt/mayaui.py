@@ -1,4 +1,4 @@
-from qt import QtWidgets, QtCore
+from qt import QtWidgets, QtCore, QtGui
 
 try:
     from shiboken2 import wrapInstance as wrapinstance
@@ -61,7 +61,7 @@ def getMayaWindowName():
     return getMayaWindow().objectName()
 
 
-def toQtObject(mayaName):
+def toQtObject(mayaName, widgetType=QtWidgets.QWidget):
     """Convert a Maya ui path to a Qt object.
 
     :param mayaName: Maya UI Path to convert
@@ -75,11 +75,25 @@ def toQtObject(mayaName):
         ptr = apiUI.MQtUtil.findMenuItem(mayaName)
 
     if ptr is not None:
-        return wrapinstance(long(ptr), QtWidgets.QWidget)
+        return wrapinstance(long(ptr), widgetType)
 
 
 def getOutliners():
     return [toQtObject(i) for i in cmds.getPanel(typ="outlinerPanel")]
+
+def applyScriptEditorHistorySyntax(sourceType, highlighter=None, **kwargs):
+    se_edit, seRepo = highlighterEditorWidget(sourceType, **kwargs)
+    se_edit.setVisible(False)
+    if highlighter is None:
+        highlighter = se_edit.findChild(QtGui.QSyntaxHighlighter)
+    highlighter.setDocument(seRepo.document())
+
+def highlighterEditorWidget(sourceType, **kwargs):
+    se_repo = toQtObject('cmdScrollFieldReporter1', widgetType=QtWidgets.QTextEdit)
+    tmp = cmds.cmdScrollFieldExecuter(sourceType=sourceType, **kwargs)
+    se_edit = toQtObject(tmp, widgetType=QtWidgets.QTextEdit)
+    se_edit.nativeParentWidget()
+    return se_edit, se_repo
 
 
 def suppressOutput():
@@ -190,6 +204,7 @@ class BootStrapWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
 
         # maya internals workouts the parent if None
         super(BootStrapWidget, self).__init__(parent=parent)
+        # self.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
         self.preferredSize = self.PREFERRED_SIZE
         # bind this instance globally so the maya callback can talk to it
         global BOOT_STRAPPED_WIDGETS
@@ -205,23 +220,16 @@ class BootStrapWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         self.dockingFrame.setDockOptions(QtWidgets.QMainWindow.AnimatedDocks)
 
         self.centralWidget = widget
-        widLayout = self.centralWidget.layout()
-        if widLayout:
-            widLayout.setContentsMargins(0, 0, 0, 0)
         self.dockingFrame.setCentralWidget(self.centralWidget)
 
         layout = QtWidgets.QVBoxLayout(self)
         layout.addWidget(self.dockingFrame, 0)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
         self.setLayout(layout)
 
     def setSizeHint(self, size):
         self.preferredSize = size
-
-    def sizeHint(self):
-        return self.preferredSize
-
-    def minimumSizeHint(self):
-        return self.MINIMUM_SIZE
 
     def close(self, *args, **kwargs):
         """Overridden to call the bootstrap user widget.close()
@@ -231,19 +239,15 @@ class BootStrapWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
 
     def show(self, **kwargs):
         name = self.objectName()
+        name = name + "WorkspaceControl"
         if cmds.workspaceControl(name, query=True, exists=True):
             cmds.deleteUI(name)
             cmds.workspaceControlState(name, remove=True)
-        if "widthSizingProperty" not in kwargs:
-            kwargs["widthSizingProperty"] = 'free'
-        if "heightProperty" not in kwargs:
-            kwargs["heightProperty"] = 'free'
         kwargs["retain"] = False
         kwargs["uiScript"] = "import zoo.libs.maya.qt.mayaui as zoomayaui\nzoomayaui.rebuild({})".format(
             self.objectName())
         kwargs[
             "closeCallback"] = 'import zoo.libs.maya.qt.mayaui as zoomayaui\nzoomayaui.bootstrapDestroyWindow("{' \
-                               '}")'.format(
-            self.objectName())
+                               '}")'.format(self.objectName())
         super(BootStrapWidget, self).show(**kwargs)
 
