@@ -1,7 +1,20 @@
+from maya import cmds
 from maya.api import OpenMaya as om2
 
 from zoo.libs.maya.api import nodes
 from zoo.libs.maya.api import plugs
+
+shapeInfo = {"cvs": (),
+             "degree": 3,
+             "form": 1,
+             "knots": (),
+             "matrix": (1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0),
+             "outlinerColor": (0.0, 0.0, 0.0),
+             "overrideColorRGB": (0.0, 0.0, 0.0),
+             "overrideEnabled": False,
+             "overrideRGBColors": False,
+             "useOutlinerColor": False
+             }
 
 
 def getCurveData(shape, space=om2.MSpace.kObject):
@@ -70,6 +83,23 @@ def createCurveShape(parent, data):
     return parent
 
 
+def createCurveFromPoints(name, points, shapeDict=shapeInfo, parent=None):
+    # create the shape name
+    name = name + "Shape"
+    # shapeData
+    deg = 3
+    ncvs = len(points)
+    # append two zeros to the front of the knot count so it lines up with maya specs
+    # (ncvs - deg) + 2 * deg - 1
+    knots = [0, 0] + range(ncvs)
+    # remap the last two indices to match the third from last
+    knots[-2] = knots[len(knots) - deg]
+    knots[-1] = knots[len(knots) - deg]
+    shapeDict["cvs"] = points
+    shapeDict["knots"] = knots
+    return createCurveShape(parent, {name: shapeDict})
+
+
 def serializeCurve(node, space=om2.MSpace.kObject):
     """From a given transform serialize the shapes curve data and return a dict
 
@@ -78,7 +108,7 @@ def serializeCurve(node, space=om2.MSpace.kObject):
     :return: returns the dict of data from the shapes
     :rtype: dict
     """
-    shapes = nodes.shapes(om2.MFnDagNode(node).getPath(), filterTypes=(om2.MFn.kNurbsCurve, ))
+    shapes = nodes.shapes(om2.MFnDagNode(node).getPath(), filterTypes=(om2.MFn.kNurbsCurve,))
     data = {}
     for shape in shapes:
         dag = om2.MFnDagNode(shape.node())
@@ -136,14 +166,34 @@ def iterCurvePoints(dagPath, count, space=om2.MSpace.kObject):
     dist = length / float(count - 1)  # account for end point
     current = 0.001
     maxParam = crvFn.findParamFromLength(length)
+    defaultNormal = [1.0, 0.0, 0.0]
+    defaultTangent = [0.0, 1.0, 0.0]
     for i in xrange(count):
         param = crvFn.findParamFromLength(current)
         # maya fails to get the normal when the param is the maxparam so we sample with a slight offset
         if param == maxParam:
             param = maxParam - 0.0001
         point = om2.MVector(crvFn.getPointAtParam(param, space=space))
-        yield point, crvFn.normal(param, space=space), crvFn.tangent(param, space=space)
+        # in case where the curve is flat eg. directly up +y
+        # this causes a runtimeError in which case the normal is [1.0,0.0,0.0] and tangent [0.0,1.0,0.0]
+        try:
+            yield point, crvFn.normal(param, space=space), crvFn.tangent(param, space=space)
+        except RuntimeError:
+            yield point, defaultNormal, defaultTangent
         current += dist
+
+
+def curveCvs(dagPath, space=om2.MSpace.kObject):
+    """Generator Function to iterate and return the position, normal and tangent for the curve with the given point count.
+
+    :param dagPath: the dagPath to the curve shape node
+    :type dagPath: om2.MDagPath
+    :param space: the coordinate space to query the point data
+    :type space: om2.MSpace
+    :return: The first element is the Position, second is the normal, third is the tangent
+    :rtype: tuple(om2.MPoint)
+    """
+    return om2.MFnNurbsCurve(dagPath).cvPositions(space=space)
 
 
 def iterCurveParams(dagPath, count):
