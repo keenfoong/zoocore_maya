@@ -79,7 +79,7 @@ def saveToLib(node, name, override=True):
         >>>data, path = saveToLib(api.asMObject(nurbsCurve))
     """
     if name is None:
-        name = nodes.nameFromMObject(node)
+        name = nodes.nameFromMObject(node, True, False)
     if not name.endswith(".shape"):
         name = ".".join([name, "shape"])
     data = curves.serializeCurve(node)
