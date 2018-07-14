@@ -124,7 +124,7 @@ importer._MockObject = MockExt
 
 sys.modules.update((mod_name, MockExt()) for mod_name in ["qt", "shiboken2", "shiboken", "shiboken.wrapInstance",
                                                           "shiboken2.wrapInstance"])
-
+autodoc_mock_imports = ['maya']
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
