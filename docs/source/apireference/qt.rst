@@ -1,10 +1,9 @@
-zoo.libs.maya.qt package
-========================
+PyQt
+########################################
 
-Submodules
-----------
 
-zoo.libs.maya.qt.mayaui module
+
+Mayaui
 ------------------------------
 
 .. automodule:: zoo.libs.maya.qt.mayaui
@@ -12,7 +11,7 @@ zoo.libs.maya.qt.mayaui module
     :undoc-members:
     :show-inheritance:
 
-zoo.libs.maya.qt.nodeeditor module
+Nodeeditor
 ----------------------------------
 
 .. automodule:: zoo.libs.maya.qt.nodeeditor
@@ -20,19 +19,10 @@ zoo.libs.maya.qt.nodeeditor module
     :undoc-members:
     :show-inheritance:
 
-zoo.libs.maya.qt.scripteditor module
+Scripteditor
 ------------------------------------
 
 .. automodule:: zoo.libs.maya.qt.scripteditor
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-Module contents
----------------
-
-.. automodule:: zoo.libs.maya.qt
     :members:
     :undoc-members:
     :show-inheritance:

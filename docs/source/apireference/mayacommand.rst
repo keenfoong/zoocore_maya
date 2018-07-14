@@ -1,31 +1,25 @@
-zoo.libs.maya.mayacommand package
+Zoo Maya Command
+########################################
+
+
+
+Executor Core
 =================================
-
-.. automodule:: zoo.libs.maya.mayacommand
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-zoo.libs.maya.mayacommand.mayaexecutor module
----------------------------------------------
 
 .. automodule:: zoo.libs.maya.mayacommand.mayaexecutor
     :members:
     :undoc-members:
     :show-inheritance:
 
-
 zoo.libs.maya.mayacommand.library
 =================================
-
 
 .. automodule:: zoo.libs.maya.mayacommand.library
     :members:
     :undoc-members:
     :show-inheritance:
 
-zoo.libs.maya.mayacommand.library.alignselectedcommand module
+Alignselectedcommand
 -------------------------------------------------------------
 
 .. automodule:: zoo.libs.maya.mayacommand.library.alignselectedcommand
@@ -33,7 +27,7 @@ zoo.libs.maya.mayacommand.library.alignselectedcommand module
     :undoc-members:
     :show-inheritance:
 
-zoo.libs.maya.mayacommand.library.bakemetacamerascommand module
+Bakemetacamerascommand
 ---------------------------------------------------------------
 
 .. automodule:: zoo.libs.maya.mayacommand.library.bakemetacamerascommand
@@ -41,7 +35,7 @@ zoo.libs.maya.mayacommand.library.bakemetacamerascommand module
     :undoc-members:
     :show-inheritance:
 
-zoo.libs.maya.mayacommand.library.connectsrt module
+Connectsrt
 ----------------------------------------------------------
 
 .. automodule:: zoo.libs.maya.mayacommand.library.connectsrt
@@ -49,7 +43,7 @@ zoo.libs.maya.mayacommand.library.connectsrt module
     :undoc-members:
     :show-inheritance:
 
-zoo.libs.maya.mayacommand.library.createcameracommand module
+Createcameracommand
 ------------------------------------------------------------
 
 .. automodule:: zoo.libs.maya.mayacommand.library.createcameracommand
@@ -57,7 +51,7 @@ zoo.libs.maya.mayacommand.library.createcameracommand module
     :undoc-members:
     :show-inheritance:
 
-zoo.libs.maya.mayacommand.library.createmetacommand module
+Createmetacommand
 ----------------------------------------------------------
 
 .. automodule:: zoo.libs.maya.mayacommand.library.createmetacommand
@@ -65,7 +59,7 @@ zoo.libs.maya.mayacommand.library.createmetacommand module
     :undoc-members:
     :show-inheritance:
 
-zoo.libs.maya.mayacommand.library.nodeeditorcommands module
+Nodeeditorcommands
 -----------------------------------------------------------
 
 .. automodule:: zoo.libs.maya.mayacommand.library.nodeeditorcommands
@@ -73,7 +67,7 @@ zoo.libs.maya.mayacommand.library.nodeeditorcommands module
     :undoc-members:
     :show-inheritance:
 
-zoo.libs.maya.mayacommand.library.removedisconnectedelements module
+Removedisconnectedelements
 -------------------------------------------------------------------
 
 .. automodule:: zoo.libs.maya.mayacommand.library.removedisconnectedelements
@@ -81,7 +75,7 @@ zoo.libs.maya.mayacommand.library.removedisconnectedelements module
     :undoc-members:
     :show-inheritance:
 
-zoo.libs.maya.mayacommand.library.renamecommand module
+Renamecommand
 ------------------------------------------------------
 
 .. automodule:: zoo.libs.maya.mayacommand.library.renamecommand
@@ -89,7 +83,7 @@ zoo.libs.maya.mayacommand.library.renamecommand module
     :undoc-members:
     :show-inheritance:
 
-zoo.libs.maya.mayacommand.library.setcamerametacommand module
+Setcamerametacommand
 -------------------------------------------------------------
 
 .. automodule:: zoo.libs.maya.mayacommand.library.setcamerametacommand
@@ -97,7 +91,7 @@ zoo.libs.maya.mayacommand.library.setcamerametacommand module
     :undoc-members:
     :show-inheritance:
 
-zoo.libs.maya.mayacommand.library.setframerangecommand module
+Setframerangecommand
 -------------------------------------------------------------
 
 .. automodule:: zoo.libs.maya.mayacommand.library.setframerangecommand
@@ -105,7 +99,7 @@ zoo.libs.maya.mayacommand.library.setframerangecommand module
     :undoc-members:
     :show-inheritance:
 
-zoo.libs.maya.mayacommand.library.setselectednodes module
+Setselectednodes
 ---------------------------------------------------------
 
 .. automodule:: zoo.libs.maya.mayacommand.library.setselectednodes
@@ -113,7 +107,7 @@ zoo.libs.maya.mayacommand.library.setselectednodes module
     :undoc-members:
     :show-inheritance:
 
-zoo.libs.maya.mayacommand.library.swapconnections module
+Swapconnections
 --------------------------------------------------------
 
 .. automodule:: zoo.libs.maya.mayacommand.library.swapconnections

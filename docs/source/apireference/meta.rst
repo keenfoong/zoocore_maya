@@ -1,10 +1,8 @@
-zoo.libs.maya.meta package
-==========================
+Meta Node Network
+########################################
 
-Submodules
-----------
 
-zoo.libs.maya.meta.base module
+Base
 ------------------------------
 
 .. automodule:: zoo.libs.maya.meta.base
@@ -12,7 +10,7 @@ zoo.libs.maya.meta.base module
     :undoc-members:
     :show-inheritance:
 
-zoo.libs.maya.meta.metacamera module
+Metacamera
 ------------------------------------
 
 .. automodule:: zoo.libs.maya.meta.metacamera
@@ -20,11 +18,3 @@ zoo.libs.maya.meta.metacamera module
     :undoc-members:
     :show-inheritance:
 
-
-Module contents
----------------
-
-.. automodule:: zoo.libs.maya.meta
-    :members:
-    :undoc-members:
-    :show-inheritance:

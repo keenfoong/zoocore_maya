@@ -1,10 +1,8 @@
-zoo.libs.maya.rig package
-=========================
+Rig
+########################################
 
-Submodules
-----------
 
-zoo.libs.maya.rig.control module
+Control
 --------------------------------
 
 .. automodule:: zoo.libs.maya.rig.control
@@ -12,7 +10,7 @@ zoo.libs.maya.rig.control module
     :undoc-members:
     :show-inheritance:
 
-zoo.libs.maya.rig.metarig module
+Metarig
 --------------------------------
 
 .. automodule:: zoo.libs.maya.rig.metarig
@@ -20,19 +18,10 @@ zoo.libs.maya.rig.metarig module
     :undoc-members:
     :show-inheritance:
 
-zoo.libs.maya.rig.skeletonutils module
+Skeletonutils
 --------------------------------------
 
 .. automodule:: zoo.libs.maya.rig.skeletonutils
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-Module contents
----------------
-
-.. automodule:: zoo.libs.maya.rig
     :members:
     :undoc-members:
     :show-inheritance:

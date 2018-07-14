@@ -1,13 +1,8 @@
-zoo.libs.maya.markingmenu package
-=================================
+Markingmenu Extension
+########################################
 
 
-.. automodule:: zoo.libs.maya.markingmenu
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-zoo.libs.maya.markingmenu.markingmenuoverride module
+Markingmenuoverride
 ----------------------------------------------------
 
 .. automodule:: zoo.libs.maya.markingmenu.markingmenuoverride
@@ -15,7 +10,7 @@ zoo.libs.maya.markingmenu.markingmenuoverride module
     :undoc-members:
     :show-inheritance:
 
-zoo.libs.maya.markingmenu.markingmenuvalidate module
+Markingmenuvalidate
 ----------------------------------------------------
 
 .. automodule:: zoo.libs.maya.markingmenu.markingmenuvalidate
@@ -23,7 +18,7 @@ zoo.libs.maya.markingmenu.markingmenuvalidate module
     :undoc-members:
     :show-inheritance:
 
-zoo.libs.maya.markingmenu.menu module
+Menu
 -------------------------------------
 
 .. automodule:: zoo.libs.maya.markingmenu.menu
@@ -31,7 +26,7 @@ zoo.libs.maya.markingmenu.menu module
     :undoc-members:
     :show-inheritance:
 
-zoo.libs.maya.markingmenu.utils module
+Utils
 --------------------------------------
 
 .. automodule:: zoo.libs.maya.markingmenu.utils

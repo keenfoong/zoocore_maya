@@ -1,12 +1,7 @@
-zoo.libs.maya.api package
-=========================
+Maya API Extension
+########################################
 
-.. automodule:: zoo.libs.maya.api
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-zoo.libs.maya.api.anim module
+Anim
 -----------------------------
 
 .. automodule:: zoo.libs.maya.api.anim
@@ -14,7 +9,7 @@ zoo.libs.maya.api.anim module
     :undoc-members:
     :show-inheritance:
 
-zoo.libs.maya.api.attrtypes module
+Attrtypes
 ----------------------------------
 
 .. automodule:: zoo.libs.maya.api.attrtypes
@@ -22,7 +17,7 @@ zoo.libs.maya.api.attrtypes module
     :undoc-members:
     :show-inheritance:
 
-zoo.libs.maya.api.blendshape module
+Blendshape
 -----------------------------------
 
 .. automodule:: zoo.libs.maya.api.blendshape
@@ -30,7 +25,7 @@ zoo.libs.maya.api.blendshape module
     :undoc-members:
     :show-inheritance:
 
-zoo.libs.maya.api.callbacks module
+Callbacks
 ----------------------------------
 
 .. automodule:: zoo.libs.maya.api.callbacks
@@ -38,7 +33,7 @@ zoo.libs.maya.api.callbacks module
     :undoc-members:
     :show-inheritance:
 
-zoo.libs.maya.api.constraints module
+Constraints
 ------------------------------------
 
 .. automodule:: zoo.libs.maya.api.constraints
@@ -46,7 +41,7 @@ zoo.libs.maya.api.constraints module
     :undoc-members:
     :show-inheritance:
 
-zoo.libs.maya.api.curves module
+Curves
 -------------------------------
 
 .. automodule:: zoo.libs.maya.api.curves
@@ -54,7 +49,7 @@ zoo.libs.maya.api.curves module
     :undoc-members:
     :show-inheritance:
 
-zoo.libs.maya.api.deformers module
+Deformers
 ----------------------------------
 
 .. automodule:: zoo.libs.maya.api.deformers
@@ -62,7 +57,7 @@ zoo.libs.maya.api.deformers module
     :undoc-members:
     :show-inheritance:
 
-zoo.libs.maya.api.generic module
+Generic
 --------------------------------
 
 .. automodule:: zoo.libs.maya.api.generic
@@ -70,7 +65,7 @@ zoo.libs.maya.api.generic module
     :undoc-members:
     :show-inheritance:
 
-zoo.libs.maya.api.nodes module
+Nodes
 ------------------------------
 
 .. automodule:: zoo.libs.maya.api.nodes
@@ -78,7 +73,7 @@ zoo.libs.maya.api.nodes module
     :undoc-members:
     :show-inheritance:
 
-zoo.libs.maya.api.plugs module
+Plugs
 ------------------------------
 
 .. automodule:: zoo.libs.maya.api.plugs
@@ -86,7 +81,7 @@ zoo.libs.maya.api.plugs module
     :undoc-members:
     :show-inheritance:
 
-zoo.libs.maya.api.scene module
+Scene
 ------------------------------
 
 .. automodule:: zoo.libs.maya.api.scene

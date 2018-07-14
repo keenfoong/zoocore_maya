@@ -1,10 +1,10 @@
-zoo.libs.maya.utils package
-===========================
+Utils
+########################################
 
-Submodules
-----------
+General
+=======
 
-zoo.libs.maya.utils.creation module
+Creation
 -----------------------------------
 
 .. automodule:: zoo.libs.maya.utils.creation
@@ -12,7 +12,7 @@ zoo.libs.maya.utils.creation module
     :undoc-members:
     :show-inheritance:
 
-zoo.libs.maya.utils.creationshapes module
+Creationshapes
 -----------------------------------------
 
 .. automodule:: zoo.libs.maya.utils.creationshapes
@@ -20,7 +20,7 @@ zoo.libs.maya.utils.creationshapes module
     :undoc-members:
     :show-inheritance:
 
-zoo.libs.maya.utils.env module
+Env
 ------------------------------
 
 .. automodule:: zoo.libs.maya.utils.env
@@ -28,7 +28,7 @@ zoo.libs.maya.utils.env module
     :undoc-members:
     :show-inheritance:
 
-zoo.libs.maya.utils.files module
+Files
 --------------------------------
 
 .. automodule:: zoo.libs.maya.utils.files
@@ -36,7 +36,7 @@ zoo.libs.maya.utils.files module
     :undoc-members:
     :show-inheritance:
 
-zoo.libs.maya.utils.general module
+General
 ----------------------------------
 
 .. automodule:: zoo.libs.maya.utils.general
@@ -44,7 +44,7 @@ zoo.libs.maya.utils.general module
     :undoc-members:
     :show-inheritance:
 
-zoo.libs.maya.utils.gui module
+Gui
 ------------------------------
 
 .. automodule:: zoo.libs.maya.utils.gui
@@ -52,7 +52,7 @@ zoo.libs.maya.utils.gui module
     :undoc-members:
     :show-inheritance:
 
-zoo.libs.maya.utils.mayamath module
+Mayamath
 -----------------------------------
 
 .. automodule:: zoo.libs.maya.utils.mayamath
@@ -60,7 +60,7 @@ zoo.libs.maya.utils.mayamath module
     :undoc-members:
     :show-inheritance:
 
-zoo.libs.maya.utils.scene module
+Scene
 --------------------------------
 
 .. automodule:: zoo.libs.maya.utils.scene
@@ -68,7 +68,7 @@ zoo.libs.maya.utils.scene module
     :undoc-members:
     :show-inheritance:
 
-zoo.libs.maya.utils.shelves module
+Shelves
 ----------------------------------
 
 .. automodule:: zoo.libs.maya.utils.shelves
@@ -76,11 +76,10 @@ zoo.libs.maya.utils.shelves module
     :undoc-members:
     :show-inheritance:
 
+Shapelib
+========
 
-Module contents
----------------
-
-.. automodule:: zoo.libs.maya.utils
+.. automodule:: zoo.libs.maya.shapelib
     :members:
     :undoc-members:
     :show-inheritance:
