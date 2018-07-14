@@ -16,6 +16,7 @@ class ConnectSRTSelectedCommand(command.ZooCommand):
               "backgroundColor": ""
               }
     _modifier = None
+
     def resolveArguments(self, arguments):
         selected = scene.getSelectedNodes()
         if len(selected) < 2:

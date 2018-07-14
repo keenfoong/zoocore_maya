@@ -57,8 +57,9 @@ def connectVectorPlugs(sourceCompound, destinationCompound, connectionValues, fo
     :type destinationCompound: om2.MPlug
     :param connectionValues: Bool value for each axis if all axis are tre then just connect the compound
     :type connectionValues: seq(str)
-    :return:
-    :rtype:
+
+    :rtype: ::class:`om2.MDGModifier`
+
     """
     if all(connectionValues):
         connectPlugs(sourceCompound, destinationCompound, mod=modifier, force=force)
@@ -96,7 +97,7 @@ def disconnectPlug(plug, source=True, destination=True, modifier=None):
     :type destination: bool
     :return: True if succeed with the disconnection
     :rtype: bool
-    :raises maya api error
+    :raises: maya api error
     """
     if plug.isLocked:
         plug.isLocked = False
@@ -276,10 +277,14 @@ def iterDependencyGraph(plug, alternativeName="", depthLimit=256, transverseType
 
 def serializePlug(plug):
     """Take's a plug and serializes all necessary information into a dict.
+
+    Return data is in the form::
+
+        {name: str, "isDynamic": bool, "default": type, "min": type, "max": type, "softMin": type, "softMax": type}
+
     :param plug: the valid MPlug to serialize
     :type plug: MPlug
-    :return: with out connection data {name: str, "isDynamic": bool, "default": type,
-                                      "min": type, "max": type, "softMin": type, "softMax": type}
+    :return: with out connection data.
     :rtype: dict
     """
     data = {"isDynamic": plug.isDynamic}
@@ -620,7 +625,7 @@ def getPlugAndType(plug):
     """Given an MPlug, get its value
 
     :param plug: MPlug
-    :return the dataType of the given plug. Will return standard python types where necessary eg. float else maya type
+    :return: the dataType of the given plug. Will return standard python types where necessary eg. float else maya type
     :rtype: tuple(int, plugValue)
     """
     obj = plug.attribute()
@@ -757,13 +762,17 @@ def getTypedValue(plug):
 def setPlugInfoFromDict(plug, **kwargs):
     """Sets the standard plug settings via a dict.
 
+
     :param plug: The Plug to change
     :type plug: om2.MPlug
-    :param kwargs: settings currently include, default, min, max, softMin, softMin, value, Type, channelBox, keyable,
-    locked.
+    :param kwargs: currently includes, default, min, max, softMin, softMin, value, Type, channelBox, keyable, locked.
     :type kwargs: dict
-    ::examples:
-        >>> data = {
+
+
+
+    .. code-block:: python
+
+        data = {
             "Type": 5, # attrtypes.kType
             "channelBox": true,
             "default": 1.0,
@@ -778,8 +787,8 @@ def setPlugInfoFromDict(plug, **kwargs):
             "value": 1.0,
             "children": [{}] # in the same format as the parent info
           }
-        >>> somePLug = om2.MPlug()
-        >>> setPlugInfoFromDict(somePlug, **data)
+        somePLug = om2.MPlug()
+        setPlugInfoFromDict(somePlug, **data)
 
     """
     children = kwargs.get("children")

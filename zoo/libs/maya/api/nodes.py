@@ -39,11 +39,13 @@ def nameFromMObject(mobject, partialName=False, includeNamespace=True):
     :return:  the name of the mobject
     :rtype: str
 
-    Example::
-        >>>from zoo.libs.maya.api import nodes
-        >>>node = nodes.asMobject(cmds.polyCube())
-        >>>print nodes.nameFromMObject(node, partial=False) # returns the fullpath, always prepends '|' eg '|polyCube'
-        >>>print nodes.nameFromMObject(node, partial=True) # returns the partial name eg. polyCube1
+    .. code-block:: python
+
+        from zoo.libs.maya.api import nodes
+        node = nodes.asMobject(cmds.polyCube())
+        print nodes.nameFromMObject(node, partial=False) # returns the fullpath, always prepends '|' eg '|polyCube'
+        print nodes.nameFromMObject(node, partial=True) # returns the partial name eg. polyCube1
+
     """
     if mobject.hasFn(om2.MFn.kDagNode):
         if partialName:
@@ -152,10 +154,10 @@ def createDagNode(name, nodeType, parent=None):
     :type name: str
     :param nodeType: The node type to create
     :type nodeType: str
-    :param parent: The node the parent the new node to, if the parent is none or MObject.kNullObj then it will parent
+    :param parent: The node the parent the new node to, if the parent is none or MObject.kNullObj then it will parent \
     to the world, defaults to world
     :type parent: MObject or MObject.kNullObj
-    :return:The newly create nodes mobject
+    :return: The newly create nodes mobject
     :rtype: MObject
     """
     if parent is None or parent.isNull() or parent.apiType() in (om2.MFn.kInvalid, om2.MFn.kWorld):
@@ -249,7 +251,9 @@ def childPathAtIndex(path, index):
 
     :param path: MDagPath
     :type index: int
-    :return: MDagPath, this path's child at the given index"""
+    :return: MDagPath, this path's child at the given index
+    """
+
     existingChildCount = path.childCount()
     if existingChildCount < 1:
         return None
@@ -328,7 +332,7 @@ def setParent(child, newParent, maintainOffset=False):
     :type newParent: om2.MObject
     :param maintainOffset: if True then the current transformation is maintained relative to the new parent
     :type maintainOffset: bool
-    :rtype bool
+    :rtype: bool
     """
 
     newParent = newParent or om2.MObject.kNullObj
@@ -362,6 +366,7 @@ def childContext(parent):
 
 def hasParent(mobject):
     """Determines if the given MObject has a mobject
+
     :param mobject: the MObject node to check
     :type mobject: MObject
     :rtype: bool
@@ -379,11 +384,13 @@ def rename(mobject, newName, modifier=None):
     :type mobject: om2.MObject
     :param newName: the new unique name for the node
     :type newName: str
-    :param modifier: if you pass a instance then
-    the rename will be added to the queue then returned otherwise a new instance will be created and
-    immediately executed.
+    :param modifier: if you pass a instance then the rename will be added to the queue then \
+    returned otherwise a new  instance will be created and immediately executed.
     :type modifier: om2.MDGModifier or None
-    :note: If you pass a MDGModfifier then you should call doIt() after callig this function
+
+    .. note::
+        If you pass a MDGModfifier then you should call doIt() after callig this function
+
     """
     dag = modifier or om2.MDGModifier()
     dag.renameNode(mobject, newName)
@@ -523,7 +530,7 @@ def iterConnections(node, source=True, destination=True):
     :type source: bool
     :param destination: If true all downstream connections are returned
     :type destination: bool
-    :return: Returns a tuple of om2.MPlug instances, the first element is the connected MPlug of the given node(``node``)
+    :return: tuple of om2.MPlug instances, the first element is the connected MPlug of the given node(``node``) \
     The second element is the connected MPlug from the other node.
     :rtype: Generator(tuple(om2.MPlug, om2.MPlug))
     """
@@ -624,7 +631,7 @@ def getMatrix(mobject):
     """ Returns the MMatrix of the given mobject
 
     :param mobject: MObject
-    :return:MMatrix
+    :return: ::class:`om2.MMatrix`
     """
     return plugs.getPlugValue(om2.MFnDependencyNode(mobject).findPlug("matrix", False))
 
@@ -637,7 +644,8 @@ def worldMatrixPlug(mobject):
 def getWorldMatrix(mobject):
     """Returns the worldMatrix value as an MMatrix.
 
-    :param mobject: MObject, the MObject that points the dagNode
+    :param mobject: the MObject that points the dagNode
+    :type mobject: ::class:`om2.MObject`
     :return: MMatrix
     """
     return plugs.getPlugValue(worldMatrixPlug(mobject))
@@ -778,10 +786,13 @@ def addCompoundAttribute(node, longName, shortName, attrMap, isArray=False, **kw
     :type attrMap: list(dict())
     :return: the MObject attached to the compound attribute
     :rtype: om2.MObject
-    ::example:
-    >>>attrMap = [{"name":"something", "Type": attrtypes.kMFnMessageAttribute, "isArray": False}]
-    >>> print attrMap
-    # result <OpenMaya.MObject object at 0x00000000678CA790> #
+
+    .. code-block:: python
+
+        attrMap = [{"name":"something", "Type": attrtypes.kMFnMessageAttribute, "isArray": False}]
+        print attrMap
+        # result <OpenMaya.MObject object at 0x00000000678CA790> #
+
     """
     compound = om2.MFnCompoundAttribute()
     compObj = compound.create(longName, shortName)
@@ -806,28 +817,29 @@ def addCompoundAttribute(node, longName, shortName, attrMap, isArray=False, **kw
 
 
 def addAttributesFromList(node, data):
-    """Creates an attribute on the node given a list(dict) of attribute data
+    """Creates an attribute on the node given a list(dict) of attribute data::
 
-        :param data: The serialized form of the attribute
-                    [{
-                        "channelBox": true,
-                        "default": 3,
-                        "isDynamic": true,
-                        "keyable": false,
-                        "locked": false,
-                        "max": 9999,
-                        "min": 1,
-                        "name": "jointCount",
-                        "softMax": null,
-                        "softMin": null,
-                        "Type": 2,
-                        "value": 3
-                        "isArray": True
-                    }]
-        :type data: dict
-        :return: A list of create MPlugs
-        :rtype: list(om2.MPlug)
-        """
+        [{
+            "channelBox": true,
+            "default": 3,
+            "isDynamic": true,
+            "keyable": false,
+            "locked": false,
+            "max": 9999,
+            "min": 1,
+            "name": "jointCount",
+            "softMax": null,
+            "softMin": null,
+            "Type": 2,
+            "value": 3
+            "isArray": True
+        }]
+
+    :param data: The serialized form of the attribute
+    :type data: dict
+    :return: A list of create MPlugs
+    :rtype: list(om2.MPlug)
+    """
     created = []
     for attrData in iter(data):
         Type = attrData["Type"]
@@ -869,13 +881,16 @@ def addAttribute(node, longName, shortName, attrType=attrtypes.kMFnNumericDouble
     :param attrType: attribute Type, attrtypes constants
     :param apply: if False the attribute will be immediately created on the node else just return the attribute instance
     :rtype: om.MObject
-    ::example:
+
+    .. code-block:: python
+
         # message attribute
-        >>> attrMobj = addAttribute(myNode, "testMsg", "testMsg", attrType=attrtypes.kMFnMessageAttribute,
-        ...                         isArray=False, apply=True)
+        attrMobj = addAttribute(myNode, "testMsg", "testMsg", attrType=attrtypes.kMFnMessageAttribute,
+                                 isArray=False, apply=True)
         # double angle
-        >>> attrMobj = addAttribute(myNode, "myAngle", "myAngle", attrType=attrtypes.kMFnUnitAttributeAngle,
-        ...                         keyable=True, channelBox=False)
+        attrMobj = addAttribute(myNode, "myAngle", "myAngle", attrType=attrtypes.kMFnUnitAttributeAngle,
+                                 keyable=True, channelBox=False)
+
     """
     if hasAttribute(node, longName):
         raise ValueError("Node -> '%s' already has attribute -> '%s'" % (nameFromMObject(node), longName))
@@ -1011,39 +1026,6 @@ def addAttribute(node, longName, shortName, attrType=attrtypes.kMFnNumericDouble
     return attr
 
 
-def getNodesCreatedBy(function, *args, **kwargs):
-    """returns a 2-tuple containing all the nodes created by the passed function, and
-    the return value of said function
-
-    :param function: func, the function to call and inspect
-    :return tuple, list(MObject), function return type
-    """
-
-    # construct the node created callback
-    newNodeHandles = set()
-
-    def newNodeCB(newNode, data):
-        newNodeHandles.add(om2.MObjectHandle(newNode))
-
-    def remNodeCB(remNode, data):
-        remNodeHandle = om2.MObjectHandle(remNode)
-        if remNodeHandle in newNodeHandles:
-            newNodeHandles.remove(remNodeHandle)
-
-    newNodeCBMsgId = om2.MDGMessage.addNodeAddedCallback(newNodeCB)
-    remNodeCBMsgId = om2.MDGMessage.addNodeRemovedCallback(remNodeCB)
-
-    try:
-        ret = function(*args, **kwargs)
-    finally:
-        om2.MMessage.removeCallback(newNodeCBMsgId)
-        om2.MMessage.removeCallback(remNodeCBMsgId)
-
-    newNodes = [h.object() for h in newNodeHandles]
-
-    return newNodes, ret
-
-
 def serializeNode(node, skipAttributes=None, includeConnections=True):
     """This function takes an om2.MObject representing a maya node and serializes it into a dict,
     This iterates through all attributes, serializing any extra attributes found, any default attribute has not changed
@@ -1057,36 +1039,39 @@ def serializeNode(node, skipAttributes=None, includeConnections=True):
     :param includeConnections: If True find and serialize all connections where the destination is this node.
     :type includeConnections: bool
     :rtype: dict
-    :return: {
-                "attributes": [
-                {
-                  "Type": 10,
-                  "channelBox": false,
-                  "default": 0.0,
-                  "isArray": false,
-                  "isDynamic": true,
-                  "keyable": true,
-                  "locked": false,
-                  "max": null,
-                  "min": null,
-                  "name": "toeRest",
-                  "softMax": 3.14,
-                  "softMin": -1.7,
-                  "value": 0.31353071143768485
-                },
-              ],
-              "connections": [
-                {
-                  "destination": "|legGlobal_L_cmpnt|control|configParameters",
-                  "destinationPlug": "plantLength",
-                  "source": "|legGlobal_L_guide_heel_ctrl|legGlobal_L_guide_tip_ctrl",
-                  "sourcePlug": "translateZ"
-                },
-              ],
-              "name": "|legGlobal_L_cmpnt|control|configParameters",
-              "parent": "|legGlobal_L_cmpnt|control",
-              "type": "transform"
-    }
+
+    Returns values::
+
+        {
+                    "attributes": [
+                    {
+                      "Type": 10,
+                      "channelBox": false,
+                      "default": 0.0,
+                      "isArray": false,
+                      "isDynamic": true,
+                      "keyable": true,
+                      "locked": false,
+                      "max": null,
+                      "min": null,
+                      "name": "toeRest",
+                      "softMax": 3.14,
+                      "softMin": -1.7,
+                      "value": 0.31353071143768485
+                    },
+                  ],
+                  "connections": [
+                    {
+                      "destination": "|legGlobal_L_cmpnt|control|configParameters",
+                      "destinationPlug": "plantLength",
+                      "source": "|legGlobal_L_guide_heel_ctrl|legGlobal_L_guide_tip_ctrl",
+                      "sourcePlug": "translateZ"
+                    },
+                  ],
+                  "name": "|legGlobal_L_cmpnt|control|configParameters",
+                  "parent": "|legGlobal_L_cmpnt|control",
+                  "type": "transform"
+        }
 
     """
     dep = om2.MFnDagNode(node) if node.hasFn(om2.MFn.kDagNode) else om2.MFnDependencyNode(node)
@@ -1124,7 +1109,10 @@ def serializeNode(node, skipAttributes=None, includeConnections=True):
 
 def deserializeNode(data, parent=None):
     """
-    :example Data: {
+
+    example Data::
+
+        {
                 "attributes": [
                 {
                   "Type": 10,
@@ -1145,7 +1133,7 @@ def deserializeNode(data, parent=None):
               "name": "|legGlobal_L_cmpnt|control|configParameters",
               "parent": "|legGlobal_L_cmpnt|control",
               "type": "transform"
-    }
+        }
 
     :param data: Same data as serializeNode()
     :type data: dict
@@ -1426,7 +1414,8 @@ def swapOutgoingConnections(source, destination, plugs=None):
     :param destination: The destination node to transfer connections to.
     :param plugs: plug list to to swap, if None is used then all connections will be swapped
     :rtype: om2.modifier the maya modifier which will require you to call doIt()
-    :todo deal with selected child attributes when only the compound is selected
+
+    .. todo:: deal with selected child attributes when only the compound is selected
     """
     plugs = plugs or []
     destFn = om2.MFnDependencyNode(destination)

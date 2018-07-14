@@ -2,7 +2,7 @@ import sys
 import os
 import platform
 
-from maya.OpenMaya import MGlobal
+from maya import OpenMaya as om1
 from maya.api import OpenMaya as om2
 from zoo.libs.utils import zlogging
 from zoo.libs.maya.api import nodes
@@ -125,7 +125,8 @@ def mayapy(mayaVersion):
     :param mayaVersion: the maya version the workwith
     :type mayaVersion: int
     :return: the mayapy exe file path
-    :rtype str
+    :rtype: str
+
     """
     pyexe = os.path.join(getMayaLocation(mayaVersion), "bin", "mayapy")
     if platform.system() == "Windows":
@@ -139,7 +140,7 @@ def isMayapy():
     :return: bool
     """
 
-    if MGlobal.mayaState() == MGlobal.kLibraryApp:
+    if om1.MGlobal.mayaState() == om1.MGlobal.kLibraryApp:
         return True
     return False
 
@@ -150,7 +151,7 @@ def mayaVersion():
     :return: maya version
     :rtype: int
     """
-    return int(MGlobal.mayaVersion())
+    return int(om1.MGlobal.mayaVersion())
 
 
 def apiVersion():
@@ -159,7 +160,7 @@ def apiVersion():
     :return: Maya api version
     :rtype: str
     """
-    return MGlobal.apiVersion()
+    return om1.MGlobal.apiVersion()
 
 
 def globalWidthHeight():

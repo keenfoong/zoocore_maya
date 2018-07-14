@@ -33,14 +33,6 @@ zoo.libs.maya.mayacommand.library.alignselectedcommand module
     :undoc-members:
     :show-inheritance:
 
-zoo.libs.maya.mayacommand.library.applyVertexSetcommand module
---------------------------------------------------------------
-
-.. automodule:: zoo.libs.maya.mayacommand.library.applyVertexSetcommand
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 zoo.libs.maya.mayacommand.library.bakemetacamerascommand module
 ---------------------------------------------------------------
 
@@ -50,17 +42,9 @@ zoo.libs.maya.mayacommand.library.bakemetacamerascommand module
     :show-inheritance:
 
 zoo.libs.maya.mayacommand.library.connectsrt module
----------------------------------------------------
-
-.. automodule:: zoo.libs.maya.mayacommand.library.connectsrt
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-zoo.libs.maya.mayacommand.library.connectsrtcommand module
 ----------------------------------------------------------
 
-.. automodule:: zoo.libs.maya.mayacommand.library.connectsrtcommand
+.. automodule:: zoo.libs.maya.mayacommand.library.connectsrt
     :members:
     :undoc-members:
     :show-inheritance:

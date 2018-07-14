@@ -18,29 +18,19 @@
 #
 import os
 import sys
+from sphinx.ext.autodoc import importer
 
 sys.path.insert(0, os.path.abspath('.'))
 root = os.path.abspath(os.path.join("..", "..", ".."))
 os.environ["ZOO_PACKAGE_REPOS"] = root
 os.environ["ZOO_PRESET_PATH"] = os.path.join(root, "zootools_version.config")
 sys.path.append(root)
+
 import packageresolver
 
 resolved, cfg = packageresolver.resolveFromConfigFile(os.getenv("ZOO_PRESET_PATH"), bakeEnv=True)
 
 
-# Napoleon settings
-# -----------------
-napoleon_google_docstring = False
-napoleon_numpy_docstring = False
-napoleon_include_private_with_doc = False
-napoleon_include_special_with_doc = True
-napoleon_use_admonition_for_examples = False
-napoleon_use_admonition_for_notes = False
-napoleon_use_admonition_for_references = False
-napoleon_use_ivar = False
-napoleon_use_param = True
-napoleon_use_rtype = True
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
@@ -56,9 +46,85 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.coverage',
               'sphinx.ext.viewcode',
               'sphinx.ext.githubpages',
-              'sphinxcontrib.napoleon'
               ]
-autodoc_mock_imports = ["maya", "qt", "PySide2", "QtWidgets", "QtCore", 'QtGui']
+autodoc_mock_imports = ["maya"]
+
+
+class MockExt(object):
+    """Hack(sphinx.ext.autodoc.importer) to fix cached maya and qt calls in modules, simple extending the class
+    doesn't work with cmds but seems fine with api.
+
+     the sphinx mock class to handle QtCore.Qt.UserRole operators
+    """
+
+    def __new__(cls, *args, **kwargs):
+        # type: (Any, Any) -> Any
+        if len(args) == 3 and isinstance(args[1], tuple) and args[1][-1].__class__ is cls:
+            # subclassing MockObject
+            return type(args[0], (MockExt,), args[2], **kwargs)  # type: ignore
+        else:
+            return super(MockExt, cls).__new__(cls)
+
+    def __init__(self, *args, **kwargs):
+        # type: (Any, Any) -> None
+        self.__qualname__ = ''
+
+    def __len__(self):
+        # type: () -> int
+        return 0
+
+    def __contains__(self, key):
+        # type: (str) -> bool
+        return False
+
+    def __iter__(self):
+        # type: () -> Iterator
+        return iter([])
+
+    def __mro_entries__(self, bases):
+        # type: (Tuple) -> Tuple
+        return bases
+
+    def __getitem__(self, key):
+        # type: (str) -> MockExt
+        return self
+
+    def __getattr__(self, key):
+        # type: (str) -> MockExt
+        return self
+
+    def __call__(self, *args, **kw):
+        # type: (Any, Any) -> Any
+        if args and type(args[0]) in [importer.FunctionType, importer.MethodType]:
+            # Appears to be a decorator, pass through unchanged
+            return args[0]
+        return self
+
+    def __mul__(self, other):
+        return MockExt()
+
+    def __rmul__(self, other):
+        return MockExt()
+
+    def __pow__(self, other):
+        return MockExt()
+
+    def __div__(self, other):
+        return MockExt()
+
+    def __add__(self, other):
+        return MockExt()
+
+    def __radd__(self, other):
+        return MockExt()
+
+
+# Hack(sphinx.ext.autodoc.importer)
+importer._MockObject = MockExt
+
+sys.modules.update((mod_name, MockExt()) for mod_name in ["qt", "shiboken2", "shiboken", "shiboken.wrapInstance",
+                                                          "shiboken2.wrapInstance"])
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
@@ -72,7 +138,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Zoo Core'
+project = u'Zoo Core Maya'
 copyright = u'2018, David Sparrow'
 author = u'David Sparrow'
 
@@ -123,10 +189,6 @@ html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 #
 # html_theme_options = {}
 
-# Add any paths that contain custom static files (such as style sheets) here,
-# relative to this directory. They are copied after the builtin static files,
-# so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.

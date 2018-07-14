@@ -25,10 +25,12 @@ def getCurveData(shape, space=om2.MSpace.kObject):
     :param space:
     :type space: om2.MSpace
 
-    Example::
-        >>>nurbsCurve = cmds.circle()[1]
+    .. code-block:: python
+
+        nurbsCurve = cmds.circle()[1]
         # requires an MObject of the shape node
-        >>>data = curve_utils.getCurveData(api.asMObject(nurbsCurve))
+        data = curve_utils.getCurveData(api.asMObject(nurbsCurve))
+
     """
     if isinstance(shape, om2.MObject):
         shape = om2.MFnDagNode(shape).getPath()
@@ -128,9 +130,12 @@ def mirrorCurveCvs(curveObj, axis="x", space=None):
     :type axis: str
     :param space: the space to mirror by, accepts: MSpace.kObject, MSpace.kWorld, default: MSpace.kObject
     :type space: int
-    Example::
-            >>>nurbsCurve = cmds.circle()[0]
-            >>>mirrorCurveCvs(api.asMObject(nurbsCurve), axis='y', space=om.MSpace.kObject)
+
+    :Example:
+
+            nurbsCurve = cmds.circle()[0]
+            mirrorCurveCvs(api.asMObject(nurbsCurve), axis='y', space=om.MSpace.kObject)
+
     """
     space = space or om2.MSpace.kObject
 

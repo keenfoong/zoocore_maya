@@ -61,8 +61,10 @@ class LayoutRegistry(object):
 
 class Layout(object):
     """
-    ::example:
-     >>> layoutData={"items":{"N": "",
+
+    .. code-block:: python
+
+        layoutData={"items":{"N": "",
                               "NW": "",
                               "W": "",
                               "SW": "",
@@ -80,8 +82,8 @@ class Layout(object):
 
                               },
                     "id": "some.layout.id"}
-     >>> layoutObj = Layout(layoutData)
-     >>> layoutObj
+        layoutObj = Layout(layoutData)
+
     """
     executor = executor.Executor()
 
@@ -101,9 +103,9 @@ class Layout(object):
         """
         :param item: The name of the layout region eg. "N", "S" etc
         :type item: str
-        :return: Will return a dict in cases of marking menu region(n,s,w etc) being a nested after a layout has been
-        solved, a list will be returned for the generic region , str is return when the layout hasnt been solved but
-        references another layout
+        :return: Will return a dict in cases of marking menu region(n,s,w etc) being a nested after a layout has been \
+        solved, a list will be returned for the generic region , str is return when the layout hasnt been solved but \
+        references another layout.
         :rtype: list or dict or str
         """
         return self.data.get(item)
@@ -244,6 +246,7 @@ class MarkingMenu(object):
 
     def asQObject(self):
         """Returns this markingMenu as a PYQT object
+
         :return:
         :rtype: QMenu
         """
@@ -261,8 +264,8 @@ class MarkingMenu(object):
         return False
 
     def create(self):
-        """Create's a new popup markingMenu parented to self.parent instance, use ::method:`attach` if you to add to
-        existing markingmenu.
+        """Create's a new popup markingMenu parented to self.parent instance, use :func: `MarkingMenu:attach` if you
+        to add to existing markingmenu.
 
         :return: current instance
         :rtype: ::class:`MarkingMenu`

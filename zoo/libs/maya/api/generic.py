@@ -4,9 +4,11 @@ from maya.api import OpenMaya as om2
 class MObjectHandleWrap(om2.MObjectHandle):
     """Simple class to do what Autodesk should of done, this class makes the
     MObjectHandle hashable so it can be used in sets and dicts correctly.
-    ::note maya's documentation says >, >=, <, <= but this isn't true at all
-    part from the errors the c++ docs don't specify it so c++ is right, geez get
-    your shit right.
+
+    :note::
+        maya's documentation says >, >=, <, <= but this isn't true at all
+        part from the errors the c++ docs don't specify it so c++ is right, geez get
+        your shit right.
     """
     def __hash__(self):
         return self.hashCode()
@@ -130,12 +132,14 @@ def intToMTransformRotationOrder(rotateOrder):
 def stripNamespaceFromName(name):
     """Does what maya's om2.MNamespace.stripNamespaceFromName(name) was suppose to do.
     Autodesk results:
-    >>> name = u'|agagaa:NewNamespace1:joint1|agagaa:NewNamespace1:joint2|agagaa:NewNamespace1:joint3
-    >>> om2.MNamespace.stripNamespaceFromName(name)
-    # 'joint3'
-    ours:
-    >>> generic.stripNamespaceFromName(name)
-    #u'|joint1|joint2|joint3'
+
+    .. code-block:: python
+
+        name = u'|agagaa:NewNamespace1:joint1|agagaa:NewNamespace1:joint2|agagaa:NewNamespace1:joint3
+        om2.MNamespace.stripNamespaceFromName(name)
+        # 'joint3'
+        generic.stripNamespaceFromName(name)
+        # u'|joint1|joint2|joint3'
 
     :param name: the name to strip
     :type name: str

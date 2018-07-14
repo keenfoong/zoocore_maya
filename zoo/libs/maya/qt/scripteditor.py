@@ -2,10 +2,8 @@
 A Simple Script editor with basic syntax highlighting which include mel and python.
 Nothing fancy
 """
-import os
 
 from zoo.libs.maya.qt import mayaui
-from zoo.libs.pyqt.syntaxhighlighter import highlighter
 from zoo.libs.pyqt.widgets import dialog, layouts
 from zoo.libs.pyqt import utils as qtutils
 from zoo.libs.pyqt.extended import pythoneditor

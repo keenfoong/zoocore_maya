@@ -78,9 +78,12 @@ class ParentConstraint(BaseConstraint):
 
     def addTarget(self, driver):
         """Adds the given driver transform to the constraint
+
         :param driver: The driver mobject transform
         :type driver: MObject
-        @note having to use maya commands here due to api not able to resize the plugs array outside the datablock
+
+        .. note::
+            having to use maya commands here due to api not able to resize the plugs array outside the datablock
         """
         driven = self.drivenObject()
         driverName = nodes.nameFromMObject(driver)  # so we have the fullPath
@@ -194,6 +197,7 @@ def addConstraintAttribute(node):
 
 def iterIncomingConstraints(node):
     """Walks upstream of this `node` to find the incoming constraintMap Attribute
+
     :param node:
     :type node:
     :return:
@@ -229,7 +233,7 @@ def iterConstraints(node):
 
     :param node: The node to iterate, this node should already have the compound attribute
     :type node: om2.MObject
-    :return: First element is a list a driven transforms, the second is a list of
+    :return: First element is a list a driven transforms, the second is a list of \
     utility nodes used to create the constraint.
     :rtype: tuple(list(om2.MObject), list(om2.MObject))
     """
@@ -249,12 +253,12 @@ def iterConstraints(node):
 def addConstraintMap(node, driven, utilities, kwargsMap=None):
     """Adds a mapping of drivers and utilities to the constraint compound array attribute
 
-    :param node: The node to add or has the constraint map , typically this would be the driver node
+    :param node: The node to add or has the constraint map , typically this would be the driver node \
     of the constraint.
     :type node: om2.MObject
     :param driven: a list of driven transform nodes.
     :type driven: tuple(om2.MObject)
-    :param utilities: a list of utilities/support nodes that make up the constraint, this could be the
+    :param utilities: a list of utilities/support nodes that make up the constraint, this could be the \
     constraint node itself or any math node etc.
     :type utilities: tuple(om2.MObject)
     """

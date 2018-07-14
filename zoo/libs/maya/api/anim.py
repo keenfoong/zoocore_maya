@@ -101,14 +101,15 @@ def currentTimeInfo():
     """Returns a dict of all the current timeline settings
     
     :rtype: dict
-    Examples::
-        >>> currentTimeInfo()
-        # result
-        {"currentTime": om2.MTime,
-        "start": 0,
-        "end": 1,
-        "unit": 12,
-        "fps": 25}
+
+    .. code-block:: python
+
+        currentTimeInfo()
+        # result {"currentTime": om2.MTime,
+                "start": 0,
+                "end": 1,
+                "unit": 12,
+                "fps": 25}
 
     """
     current = om2Anim.MAnimControl.currentTime()

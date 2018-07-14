@@ -9,6 +9,7 @@ from zoo.libs.maya.api import curves
 
 def iterAvailableShapesNames():
     """Generator function for looping over all available shape names
+
     :return:
     :rtype:
     """
@@ -31,7 +32,7 @@ def loadFromLib(shapeName, parent=None):
     :type parent: MObject
     :return: Returns the data from the library or the MObject of the parent
     :rtype: dict or MObject
-    :raises ValueError
+    :raises: ValueError
     """
     lib = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
     for f in iter(os.listdir(lib)):
@@ -67,16 +68,18 @@ def saveToLib(node, name, override=True):
     """Save's the current transform node shapes to the zoo library, used internally for zoo.
 
     :param node:The mobject to the transform that you want to save
-        :type node: MObject
+    :type node: MObject
     :param name: the name of the file to create, if not specified the node name will be used
     :type name: str
     :return: The file path to the newly created shape file
     :rtype: str
 
-    Example::
-        >>>nurbsCurve = cmds.circle()[0]
+    .. code-block:: python
+
+        nurbsCurve = cmds.circle()[0]
         # requires an MObject of the shape node
-        >>>data, path = saveToLib(api.asMObject(nurbsCurve))
+        data, path = saveToLib(api.asMObject(nurbsCurve))
+
     """
     if name is None:
         name = nodes.nameFromMObject(node, True, False)

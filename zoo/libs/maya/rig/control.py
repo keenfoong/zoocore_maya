@@ -12,7 +12,10 @@ from zoo.libs.maya import shapelib
 class Control(object):
     """This Control class wraps the common functionality on a rig control. The class allows for creation of loading
     of curve shapes from the zoo shape library. you can use addSrt() to add a part transform.
-    :note: transformations to most likely be on the srt as thats the preferred method in rigging
+
+    :note::
+        transformations to most likely be on the srt as thats the preferred method in rigging
+
     """
 
     def __init__(self, node=None, name=""):
@@ -125,7 +128,6 @@ class Control(object):
             self.setColour(color, 0)
         return self.dagPath
 
-
     def addShapeFromLib(self, shapeName):
         if shapeName in shapelib.shapeNames():
             shapelib.loadFromLib(shapeName, parent=self.mobject())
@@ -172,7 +174,7 @@ class Control(object):
         :type space: om.MSpace
         :param cvs: if true then the rotation will be applied to the cv components
         :type cvs: bool
-        :todo:: api for cv rotation
+
         """
         if self.dagPath is None:
             return

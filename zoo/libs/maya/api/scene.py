@@ -52,7 +52,7 @@ def getNodesCreatedBy(function, *args, **kwargs):
     the return value of said function
 
     :param function: func, the function to call and inspect
-    :return tuple, list(MObject), function return type
+    :rtype: tuple(MObject)
     """
 
     # construct the node created callback
@@ -269,9 +269,12 @@ def dgIterator(*args, **kwargs):
 
     :rtype: Generator(om2.MItDependencyGraph)
 
-    >>> mesh = asMObject("pCube1")
-    >>> for dgIter in dgIterator(mesh, om2.MFn.kSkinClusterFilter, om2.MItDependencyGraph.kUpstream):
-    ...     dgIter.currentNode()
+    .. code-block:: python
+
+        mesh = asMObject("pCube1")
+        for dgIter in dgIterator(mesh, om2.MFn.kSkinClusterFilter, om2.MItDependencyGraph.kUpstream):
+            dgIter.currentNode()
+
     """
     iterator = om2.MItDependencyGraph(*args, **kwargs)
     while not iterator.isDone():

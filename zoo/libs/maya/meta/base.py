@@ -56,14 +56,14 @@ def findSceneRoots():
 
 
 def filterSceneByAttributeValues(attributeNames, filter):
-    """ From the all scene zoo meta nodes find all attributeNames on the node if the value of the attribute is a string
+    """From the all scene zoo meta nodes find all attributeNames on the node if the value of the attribute is a string
     the filter acts as a regex otherwise it'll will do a value == filter op.
 
     :param attributeNames: a list of attribute name to find on each node
     :type attributeNames: seq(str)
     :param filter: filters the found attributes by value
     :type filter: any maya datatype
-    :return:A seq of plugs
+    :return: A seq of plugs
     :rtype: seq(MPlug)
     """
     for meta in iterSceneMetaNodes():

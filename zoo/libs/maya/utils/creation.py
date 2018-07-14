@@ -13,9 +13,9 @@ def distanceBetween(firstNode, secondNode, name):
     :type firstNode: MObject
     :param secondNode: The second transform node
     :type secondNode: MObject
-    :return:  the Three nodes created by the function in the form of a tuple, the first element
-    is the distance between node, the second is the start node decompose matrix, the third element
-    is the second node decompose matrix
+    :return:  the Three nodes created by the function in the form of a tuple, the first element \
+    is the distance between node, the second is the start node decompose matrix, the third element \
+    is the second node decompose matrix.
     :rtype: tuple(om2.MObject, om2.MObject, om2.MObject)  
     """
     firstFn = om2.MFnDependencyNode(firstNode)
@@ -36,15 +36,18 @@ def distanceBetween(firstNode, secondNode, name):
 
 def multiplyDivide(input1, input2, operation, name):
     """
+    List of operations::
+
+        no operation = 0,
+        multipy = 1,
+        divide = 2,
+        power = 3
+
     :param input1:the node attribute to connect to the input1 value or use int for value
     :type input1: MPlug or MVector
     :param input2:the node attribute to connect to the input2 value or use int for value
     :type input2: MPlug or MVector
-    :param operation : the int value for operation ,
-                                    no operation = 0,
-                                    multipy = 1,
-                                    divide = 2,
-                                    power = 3
+    :param operation: the int value for operation
     :type operation: int
     :return, the multiplyDivide node MObject
     :rtype: MObject
@@ -234,13 +237,13 @@ def createDecompose(name, destination, translateValues, scaleValues, rotationVal
 
     :param inputMatrixPlug: The input matrix plug to connect from.
     :type inputMatrixPlug: om2.MPlug
-    :param translateValues: the x,y,z to apply must have all three if all three are true then the compound will be
+    :param translateValues: the x,y,z to apply must have all three if all three are true then the compound will be \
     connected.
     :type translateValues: list(str)
-    :param scaleValues: the x,y,z to apply must have all three if all three are true then the compound will be
+    :param scaleValues: the x,y,z to apply must have all three if all three are true then the compound will be \
     connected.
     :type scaleValues: list(str)
-    :param rotationValues: the x,y,z to apply must have all three if all three are true then the compound will be
+    :param rotationValues: the x,y,z to apply must have all three if all three are true then the compound will be \
     connected.
     :type rotationValues: list(str)
     :param destination: the node to connect to
@@ -328,22 +331,25 @@ def createSetRange(name, value, min_, max_, oldMin, oldMax, outValue=None):
     :type outValue: iterable(om2.MPlug or float or None)
     :return: the created setRange node
     :rtype: om2.MObject
-    ::examples:
-        >>> one = nodes.createDagNode("one", "transform")
-        >>> two = nodes.createDagNode("two", "transform")
-        >>> end = nodes.createDagNode("end", "transform")
 
-        >>> oneFn = om2.MFnDagNode(one)
-        >>> twoFn = om2.MFnDagNode(two)
-        >>> endFn = om2.MFnDagNode(end)
-        >>> values = [oneFn.findPlug("translate", False)]
-        >>> min_ = [twoFn.findPlug("translate", False)]
-        >>> max_ = [twoFn.findPlug("translate", False)]
-        >>> oldMax = [0.0,180,360]
-        >>> oldMin = [-10,-720,-360]
-        >>> reload(creation)
-        >>> outValues = [endFn.findPlug("translateX", False), endFn.findPlug("translateY", False), None]
-        >>> pma = creation.createSetRange("test_pma", values, min_, max_, oldMin, oldMax, outValues)
+    .. code-block:: python
+
+        one = nodes.createDagNode("one", "transform")
+        two = nodes.createDagNode("two", "transform")
+        end = nodes.createDagNode("end", "transform")
+
+        oneFn = om2.MFnDagNode(one)
+        twoFn = om2.MFnDagNode(two)
+        endFn = om2.MFnDagNode(end)
+        values = [oneFn.findPlug("translate", False)]
+        min_ = [twoFn.findPlug("translate", False)]
+        max_ = [twoFn.findPlug("translate", False)]
+        oldMax = [0.0,180,360]
+        oldMin = [-10,-720,-360]
+        reload(creation)
+        outValues = [endFn.findPlug("translateX", False), endFn.findPlug("translateY", False), None]
+        pma = creation.createSetRange("test_pma", values, min_, max_, oldMin, oldMax, outValues)
+
     """
     setRange = nodes.createDGNode(name, "setRange")
     fn = om2.MFnDependencyNode(setRange)
@@ -401,18 +407,21 @@ def createPlusMinusAverage1D(name, inputs, output=None, operation=1):
     :type output: iterable(plug)
     :return: The plus minus average MObject
     :rtype: om2.MObject
-    ::examples:
-        >>> one = nodes.createDagNode("one", "transform")
-        >>> two = nodes.createDagNode("two", "transform")
-        >>> end = nodes.createDagNode("end", "transform")
 
-        >>> oneFn = om2.MFnDagNode(one)
-        >>> twoFn = om2.MFnDagNode(two)
-        >>> endFn = om2.MFnDagNode(end)
-        >>> inputs = [oneFn.findPlug("translateX", False), twoFn.findPlug("translateX", False)]
-        >>> outputs = [endFn.findPlug("translateX", False)]
-        >>> pma = creation.createPlusMinusAverage1D("test_pma", inputs, outputs)
+    .. code-block:: python
+
+        one = nodes.createDagNode("one", "transform")
+        two = nodes.createDagNode("two", "transform")
+        end = nodes.createDagNode("end", "transform")
+
+        oneFn = om2.MFnDagNode(one)
+        twoFn = om2.MFnDagNode(two)
+        endFn = om2.MFnDagNode(end)
+        inputs = [oneFn.findPlug("translateX", False), twoFn.findPlug("translateX", False)]
+        outputs = [endFn.findPlug("translateX", False)]
+        pma = creation.createPlusMinusAverage1D("test_pma", inputs, outputs)
         # Result: <OpenMaya.MObject object at 0x000002AECB23AE50> #
+
     """
     pma = nodes.createDGNode(name, "plusMinusAverage")
     fn = om2.MFnDependencyNode(pma)
@@ -478,18 +487,21 @@ def createPlusMinusAverage3D(name, inputs, output=None, operation=1):
     :type output: iterable(plug)
     :return: The plus minus average MObject
     :rtype: om2.MObject
-    ::examples:
-        >>> one = nodes.createDagNode("one", "transform")
-        >>> two = nodes.createDagNode("two", "transform")
-        >>> end = nodes.createDagNode("end", "transform")
 
-        >>> oneFn = om2.MFnDagNode(one)
-        >>> twoFn = om2.MFnDagNode(two)
-        >>> endFn = om2.MFnDagNode(end)
-        >>> inputs = [oneFn.findPlug("translate", False), twoFn.findPlug("translate", False)]
-        >>> outputs = [endFn.findPlug("translate", False)]
-        >>> pma = creation.createPlusMinusAverage3D("test_pma", inputs, outputs)
+    .. code-block:: python
+
+        one = nodes.createDagNode("one", "transform")
+        two = nodes.createDagNode("two", "transform")
+        end = nodes.createDagNode("end", "transform")
+
+        oneFn = om2.MFnDagNode(one)
+        twoFn = om2.MFnDagNode(two)
+        endFn = om2.MFnDagNode(end)
+        inputs = [oneFn.findPlug("translate", False), twoFn.findPlug("translate", False)]
+        outputs = [endFn.findPlug("translate", False)]
+        pma = creation.createPlusMinusAverage3D("test_pma", inputs, outputs)
         # Result: <OpenMaya.MObject object at 0x000002AECB23AE50> #
+        
     """
     pma = nodes.createDGNode(name, "plusMinusAverage")
     fn = om2.MFnDependencyNode(pma)

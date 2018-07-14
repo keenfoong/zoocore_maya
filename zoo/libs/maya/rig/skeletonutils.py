@@ -62,10 +62,13 @@ def convertToSkeleton(rootNode, prefix="skel_", parentObj=None):
     """Converts a hierarchy of nodes into joints that have the same transform,
     with their name prefixed with the "prefix" arg.
 
-    :param rootNode: PyNode , anything under this node gets converted.
-    :param prefix: string, the name to add to the node name .
-    :param parentObj:PyNode ,  the node to parent to skeleton to.
-    :return:MObject
+    :param rootNode: anything under this node gets converted.
+    :type rootNode: ::class:`om2.MObject`
+    :param prefix: The name to add to the node name .
+    :type prefix: str
+    :param parentObj: The node to parent to skeleton to.
+    :type parentObj: ::class:`om2.MObject`
+    :return: MObject
     """
     if parentObj is None:
         parentObj = nodes.getParent(rootNode)

@@ -41,11 +41,11 @@ class CreateMetaCommand(command.ZooCommand):
         :type node: MObject
         :param name: The new name for the create meta node(optional)
         :type name: str
-        :param type_: The meta node class name, if not specified then the base meta class is used. This is converted to
-        the class instance during command.resolvearguments method operation.
+        :param type_: The meta node class name, if not specified then the base meta class is used. This is converted \
+        to the class instance during command.resolvearguments method operation.
         :type type_: str
-        :param initdefaults: If true then the standard meta attributes are added
-        :type initdefaults: bool
+        :param initDefaults: If true then the standard meta attributes are added
+        :type initDefaults: bool
         :return: Returns the class instance of the meta class thats created
         :rtype: base.MetaBase
         """

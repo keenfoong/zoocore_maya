@@ -49,7 +49,7 @@ def createTriggerAttributes(node, commandType, command):
     :type node: om2.MObject
     :param commandType: PYTHON_TYPE ,COMMAND_TYPE, LAYOUT_TYPE
     :type commandType: int
-    :param command: if COMMAND_TYPE then the command arg value should be a zoocommand id , if PYTHONTYPE then it
+    :param command: if COMMAND_TYPE then the command arg value should be a zoocommand id , if PYTHONTYPE then it \
     should be an executable str, if LAYOUT_TYPE then the layoutId.
     :type command: str
     :return: The compound MPlug

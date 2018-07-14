@@ -64,8 +64,7 @@ def getMayaWindowName():
 def toQtObject(mayaName, widgetType=QtWidgets.QWidget):
     """Convert a Maya ui path to a Qt object.
 
-    :param mayaName: Maya UI Path to convert
-        (Ex: "scriptEditorPanel1Window|TearOffPane|scriptEditorPanel1|testButton" )
+    :param mayaName: Maya UI Path to convert, "scriptEditorPanel1Window|TearOffPane|scriptEditorPanel1|testButton"
     :return: PyQt representation of that object
     """
     ptr = apiUI.MQtUtil.findControl(mayaName)
@@ -122,7 +121,9 @@ def setChannelBoxAtTop(channelBox, value):
     :type channelBox: str
     :param value:
     :type value: bool
-    :example::
+
+    .. code-block:: python
+
         setChannelBoxAtTop("mainChannelBox",True)
     """
     cmds.channelBox(channelBox, edit=True, containerAtTop=value)
@@ -134,7 +135,9 @@ def setChannelShowType(channelBox, value):
     :type channelBox: str
     :param value:
     :type value: str
-    :example::
+
+    .. code-block:: python
+
         setChannelShowType("mainChannelBox", "all")
     """
     cmds.optionVar(stringValue=("cbShowType", value))
@@ -182,14 +185,17 @@ def bootstrapDestroyWindow(objectName):
 
 class BootStrapWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
     """ Class to wrap mayas workspace dockable mixin into something useful,
-    customWidget = QtWidget()
-    boostrap = BootStrapWidget(customWidget, "customWidget")
-    boostrap.show(dockable=True, retain=False, width=size.width(), widthSizingProperty='preferred',
-                 minWidth=minSize.width(),
-                 height=size.height(), x=250, y=200)
+
+    .. code-block:: python
+
+        customWidget = QtWidget()
+        boostrap = BootStrapWidget(customWidget, "customWidget")
+        boostrap.show(dockable=True, retain=False, width=size.width(), widthSizingProperty='preferred',
+                     minWidth=minSize.width(),
+                     height=size.height(), x=250, y=200)
 
     """
-    width = (cmds.optionVar(query='workspacesWidePanelInitialWidth')) * 0.75
+    width = cmds.optionVar(query='workspacesWidePanelInitialWidth') * 0.75
     INITIAL_SIZE = QtCore.QSize(width, 600)
     PREFERRED_SIZE = QtCore.QSize(width, 420)
     MINIMUM_SIZE = QtCore.QSize((width * 0.95), 220)
