@@ -11,7 +11,7 @@ Executor Core
     :undoc-members:
     :show-inheritance:
 
-zoo.libs.maya.mayacommand.library
+Library
 =================================
 
 .. automodule:: zoo.libs.maya.mayacommand.library

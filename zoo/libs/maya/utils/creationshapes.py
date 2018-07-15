@@ -18,4 +18,4 @@ def createAnnotation(rootObj, endObj, text=None, name=None):
     extras.extend(constraint.create(endObj, locator, (True, True, True), (True, True, True), (True, True, True)))
     extras.extend(constraint.create(rootObj, annParent, (True, True, True), (True, True, True), (True, True, True)))
 
-    return annotationNode, locator, extras
+    return annParent, locator, extras

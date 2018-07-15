@@ -1,4 +1,4 @@
-Maya API Extension
+Maya API Extension's
 ########################################
 
 Anim
@@ -13,14 +13,6 @@ Attrtypes
 ----------------------------------
 
 .. automodule:: zoo.libs.maya.api.attrtypes
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-Blendshape
------------------------------------
-
-.. automodule:: zoo.libs.maya.api.blendshape
     :members:
     :undoc-members:
     :show-inheritance:

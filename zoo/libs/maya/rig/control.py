@@ -1,5 +1,5 @@
 """
-@todo hassrt method
+:todo: hassrt method
 """
 from maya import cmds
 from maya.api import OpenMaya as om2
@@ -13,7 +13,7 @@ class Control(object):
     """This Control class wraps the common functionality on a rig control. The class allows for creation of loading
     of curve shapes from the zoo shape library. you can use addSrt() to add a part transform.
 
-    :note::
+    .. note:
         transformations to most likely be on the srt as thats the preferred method in rigging
 
     """
