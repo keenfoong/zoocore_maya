@@ -1,7 +1,9 @@
 import os
 import pprint
+from functools import partial
 
 from zoo.libs.maya.qt import mayaui
+from qt import QtWidgets
 from zoo.libs.utils import file
 from zoo.libs.utils import classtypes
 from zoo.libs.utils import general
@@ -19,12 +21,25 @@ class InvalidJsonFileFormat(Exception):
 
 
 def findLayout(layoutId):
+    """Finds the layout by Id(str) from the layout registry
+
+    :param layoutId: the layout str id, "some.layout.id"
+    :type layoutId: str
+    :return: If the registry has the id then a ::class::`Layout` object will be returned
+    :rtype: ::class:`Layout` or None
+    """
     reg = LayoutRegistry()
     if layoutId in reg.layouts:
         return reg.layouts[layoutId]
 
 
 class LayoutRegistry(object):
+    """This holds all currently available layout classes discovered in the environment
+    use :func:`findLayout` to get the layout from this registry.
+
+    To setup the environment you need to set the environment variable 'ZOO_MM_LAYOUT_PATH'
+    to the directories of the layout, each path should be separated using ::class::`os.pathsep`
+    """
     LAYOUT_ENV = "ZOO_MM_LAYOUT_PATH"
     __metaclass__ = classtypes.Singleton
 
@@ -56,6 +71,12 @@ class LayoutRegistry(object):
                                                     exc_info=True)
 
     def registerLayoutData(self, data):
+        """Adds the layout data structure as a ::class:`Layout` using the data["id"] as the
+        key.
+
+        :param data: see ::class`Layout`
+        :type data: dict
+        """
         self.layouts[data["id"]] = Layout(data)
 
 
@@ -89,7 +110,7 @@ class Layout(object):
 
     def __init__(self, data):
         """
-        :param data: The layout dict usually loaded from a json mmlayout file
+        :param data: The layout dict usually loaded from a json .mmlayout file
         :type data: dict
         """
         self.data = data
@@ -222,11 +243,11 @@ class MarkingMenu(object):
         """
         :param layout: the markingMenu layout instance
         :type layout: ::class:`Layout`
-        :param name:
-        :type name: The markingMenu name
+        :param name: The markingMenu name
+        :type name: str
         :param parent: The fullpath to the parent widget
         :type parent: str
-        :param commandExecutor:
+        :param commandExecutor: The command executor instance
         :type commandExecutor: ::class::`zoo.libs.command.executor.Executor`
         """
         self.layout = layout
@@ -247,15 +268,15 @@ class MarkingMenu(object):
     def asQObject(self):
         """Returns this markingMenu as a PYQT object
 
-        :return:
+        :return: Return this ::class:`MarkingMenu` as a ::class:`qt.QMenu` instance
         :rtype: QMenu
         """
-        return mayaui.toQtObject(self.name)
+        return mayaui.toQtObject(self.name, widgetType=QtWidgets.QMenu)
 
     def attach(self):
         """Generate's the marking using the parent marking menu.
 
-        :return:
+        :return: if the parent menu doesn't exist then False will be returned, True if successfully attached
         :rtype: bool
         """
         if cmds.popupMenu(self.parent, exists=True):
@@ -287,24 +308,37 @@ class MarkingMenu(object):
         if cmds.popupMenu(self.name, ex=True):
             cmds.deleteUI(self.name)
 
+    def addCommand(self, item, parent, radialPosition=None):
+        command = self.commandExecutor.findCommand(item["command"])
+        if command is None:
+            logger.warning("Failed To find Command: {}".format(item["command"]))
+            return
+        commandAction = command.commandAction(uiType=1, parent=parent)
+        commandAction.triggered.connect(partial(self.executeCommand, command))
+        if radialPosition:
+            cmds.menuItem(commandAction.item, e=True, radialPosition=radialPosition.upper())
+        return commandAction
+
+    def addPythonCommand(self, item, parent, radialPosition=None):
+        menuItem = cmds.menuItem(label=item["label"], command=partial(self.executePythonCommand,
+                                                                      item["command"]),
+                                 parent=parent)
+        optionBox = item.get("optionBox", False)
+        if optionBox:
+            cmds.menuItem(parent=parent, optionBox=optionBox, command=item["commandUi"])
+        if radialPosition:
+            cmds.menuItem(menuItem.item, e=True, radialPosition=radialPosition.upper())
+
     def _buildGeneric(self, data, menu):
         for item in data:
             if item["type"] == "zooCommand":
-                command = self.commandExecutor.findCommand(item["command"])
-                if command is None:
-                    logger.warning("Failed To find Command: {}".format(item["command"]))
-                    continue
-                commandAction = command.commandAction(uiType=1, parent=menu)
-                commandAction.triggered.connect(self.commandExecutor.execute)
+                self.addCommand(item, menu)
                 continue
             elif item["type"] == "menu":
                 subMenu = cmds.menuItem(label=item["label"], subMenu=True)
                 self._buildGeneric(item["children"], subMenu)
             elif item["type"] == "python":
-                cmds.menuItem(label=item["label"], command=item["command"], parent=menu)
-                optionBox = item.get("optionBox", False)
-                if optionBox:
-                    cmds.menuItem(parent=menu, optionBox=optionBox, command=item["commandUi"])
+                self.addPythonCommand(item, parent=menu)
 
     def show(self, layout, menu, parent):
         for item, data in layout.items():
@@ -318,20 +352,22 @@ class MarkingMenu(object):
             elif isinstance(data, Layout):
                 radMenu = cmds.menuItem(label=data["id"], subMenu=True, radialPosition=item.upper())
                 self.show(data, radMenu, parent)
-                continue
             elif data["type"] == "zooCommand":
-                # single item
-                command = self.commandExecutor.findCommand(data["command"])
-                if command is None:
-                    logger.warning("ZooCommand by id:{} doesn't exist".format(data["command"]))
-                    continue
-                action = command.commandAction(1, parent=menu)
-                cmds.menuItem(action.item, e=True, radialPosition=item.upper())
-                action.triggered.connect(self.commandExecutor.execute)
-
+                self.addCommand(data, parent=menu, radialPosition=item.upper())
             elif data["type"] == "python":
-                cmds.menuItem(label=data["label"], optionBox=data.get("optionBox", False),
-                              command=data["command"])
+                self.addPythonCommand(data, parent=menu, radialPosition=item.upper())
+
+    def executeCommand(self, command):
+        """Handles execution of a ZooCommand
+
+        :param command:
+        :type command: ::class:`zoo.libs.command.command.ZooCommand`
+        """
+        # command executor handles errors so just execute it
+        self.commandExecutor.execute(command.id)
+
+    def executePythonCommand(self, command):
+        pass
 
     def allowOptionBoxes(self):
         return cmds.popupMenu(self.name, q=True, allowOptionBoxes=True)
