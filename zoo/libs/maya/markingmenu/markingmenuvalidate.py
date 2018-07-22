@@ -2,6 +2,7 @@ import logging
 from zoo.libs.maya.markingmenu import menu, utils
 from zoo.libs.maya.api import nodes, scene
 from maya import cmds
+from maya.api import OpenMaya as om2
 
 logger = logging.getLogger(__name__)
 
@@ -46,5 +47,5 @@ def validateAndBuild(parentMenu, nodeName):
         return 0
     validLayout.solve()
     mainMenu = menu.MarkingMenu(validLayout, "zooTriggerMenu", parentMenu, validLayout.executor)
-    mainMenu.attach()
+    mainMenu.attach(**{"nodes": [map(om2.MObjectHandle, triggerNodes)]})
     return 1

@@ -33,6 +33,8 @@ class NodeAlignmentCommand(command.ZooCommand):
         self._previousNodePositions = [(n, n.pos()) for n in nodes]
         if not arguments.get("align"):
             arguments["align"] = ALIGN_LEFT
+        if len(nodes) < 2:
+            self.cancel("Must have more then 2 nodes selected! canceling command.")
         arguments.update({"nodeEditor": editor, "nodeItems": nodes})
         return arguments
 

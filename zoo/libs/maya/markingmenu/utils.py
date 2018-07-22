@@ -22,7 +22,7 @@ def updateCommandString(node, value, commandType=None):
     :type node: om2.MObject
     :param value:
     :type value:
-    :param commandType: the command type, see ::func:`createTriggerAttributes` for more information
+    :param commandType: the command type, see :func:`createTriggerAttributes` for more information
     :type commandType: int
     :return: True if successful
     :rtype: bool

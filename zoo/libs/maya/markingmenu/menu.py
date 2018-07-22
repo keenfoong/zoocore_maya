@@ -25,8 +25,8 @@ def findLayout(layoutId):
 
     :param layoutId: the layout str id, "some.layout.id"
     :type layoutId: str
-    :return: If the registry has the id then a ::class::`Layout` object will be returned
-    :rtype: ::class:`Layout` or None
+    :return: If the registry has the id then a :class:`Layout` object will be returned
+    :rtype: :class:`Layout` or None
     """
     reg = LayoutRegistry()
     if layoutId in reg.layouts:
@@ -37,8 +37,8 @@ class LayoutRegistry(object):
     """This holds all currently available layout classes discovered in the environment
     use :func:`findLayout` to get the layout from this registry.
 
-    To setup the environment you need to set the environment variable 'ZOO_MM_LAYOUT_PATH'
-    to the directories of the layout, each path should be separated using ::class::`os.pathsep`
+    To setup the environment you need to set the environment variable :env:'ZOO_MM_LAYOUT_PATH'
+    to the directories of the layout, each path should be separated using :class:`os.pathsep`
     """
     LAYOUT_ENV = "ZOO_MM_LAYOUT_PATH"
     __metaclass__ = classtypes.Singleton
@@ -71,10 +71,10 @@ class LayoutRegistry(object):
                                                     exc_info=True)
 
     def registerLayoutData(self, data):
-        """Adds the layout data structure as a ::class:`Layout` using the data["id"] as the
+        """Adds the layout data structure as a :class:`Layout` using the data["id"] as the
         key.
 
-        :param data: see ::class`Layout`
+        :param data: see :class`Layout`
         :type data: dict
         """
         self.layouts[data["id"]] = Layout(data)
@@ -106,6 +106,8 @@ class Layout(object):
         layoutObj = Layout(layoutData)
 
     """
+
+    #: zoo Command Executor which will be used by the menu item to execute commands
     executor = executor.Executor()
 
     def __init__(self, data):
@@ -140,14 +142,37 @@ class Layout(object):
             yield name, data
 
     def items(self):
-        """
+        """ Returns the item dict for this layout in the form of::
+
+            {"N": "",
+            "NW": "",
+            "W": "",
+            "SW": "",
+            "S": "",
+            "SE": "",
+            "E": "",
+            "NE": "",
+            "generic": [{"type": "menu",
+                      "name": "Testmenu",
+                      "children": [{"type": "python",
+                                    "command": "",
+                                    "commandUi": ""}
+                                    ]
+                      ]
+
+            }
+
         :return: The layout items dict
         :rtype: dict
         """
         return self.data["items"].items()
 
     def merge(self, layout):
+        """Merges the layout items into this instance, only differences will be merged.
 
+        :param layout: the layout to merge into the this class
+        :type layout: :class:`Layout`
+        """
         self.data = general.merge(self.data, layout.data["items"])
         self.solve()
 
@@ -210,6 +235,9 @@ class Layout(object):
         """Recursively solves the layout by expanding any @layout.id references which will compose a single dict ready
         for use.
 
+        A layout can contain deeply nested layouts which is referenced by the syntax @layout.id, in the case
+        where there is a reference then that layout will be solved first.
+
         :return: Whether or not the layout was solved
         :rtype: bool
         """
@@ -242,19 +270,21 @@ class MarkingMenu(object):
     def __init__(self, layout, name, parent, commandExecutor):
         """
         :param layout: the markingMenu layout instance
-        :type layout: ::class:`Layout`
+        :type layout: :class:`Layout`
         :param name: The markingMenu name
         :type name: str
         :param parent: The fullpath to the parent widget
         :type parent: str
         :param commandExecutor: The command executor instance
-        :type commandExecutor: ::class::`zoo.libs.command.executor.Executor`
+        :type commandExecutor: :class:`zoo.libs.command.executor.Executor`
         """
         self.layout = layout
         self.name = name
         self.commandExecutor = commandExecutor
         self.parent = parent
         self.popMenu = None  # the menu popup menu, gross thanks maya
+        # Arguments that will be passed to the menu item command to be executed
+        self.commandArguments = {}
         if cmds.popupMenu(name, ex=True):
             cmds.deleteUI(name)
 
@@ -268,34 +298,41 @@ class MarkingMenu(object):
     def asQObject(self):
         """Returns this markingMenu as a PYQT object
 
-        :return: Return this ::class:`MarkingMenu` as a ::class:`qt.QMenu` instance
+        :return: Return this :class:`MarkingMenu` as a :class:`qt.QMenu` instance
         :rtype: QMenu
         """
         return mayaui.toQtObject(self.name, widgetType=QtWidgets.QMenu)
 
-    def attach(self):
-        """Generate's the marking using the parent marking menu.
+    def attach(self, **arguments):
+        """Generate's the marking menu using the parent marking menu.
 
+        The arguments passed will be passed to ech and every menuItem command, for example if
+        the menu item command is a zoocommand then the zoocommand will have the arguments passed to it.
+
+        :param arguments: A Dict of arguments to pass to each menuItem command.
+        :type arguments: dict
         :return: if the parent menu doesn't exist then False will be returned, True if successfully attached
         :rtype: bool
         """
         if cmds.popupMenu(self.parent, exists=True):
+            self.commandArguments = arguments
             self._show(self.parent, self.parent)
             return True
         return False
 
-    def create(self):
+    def create(self, **arguments):
         """Create's a new popup markingMenu parented to self.parent instance, use :func: `MarkingMenu:attach` if you
-        to add to existing markingmenu.
+        need to add to existing markingmenu.
 
         :return: current instance
-        :rtype: ::class:`MarkingMenu`
+        :rtype: :class:`MarkingMenu`
         """
         if cmds.popupMenu(self.name, exists=True):
             cmds.deleteUI(self.name)
-
+        self.commandArguments = arguments
         self.popMenu = cmds.popupMenu(self.name, parent=self.parent,
-                                      markingMenu=True, postMenuCommand=self._show, **self.options)
+                                      markingMenu=True, postMenuCommand=self._show,
+                                      **self.options)
         return self
 
     def _show(self, menu, parent):
@@ -357,16 +394,16 @@ class MarkingMenu(object):
             elif data["type"] == "python":
                 self.addPythonCommand(data, parent=menu, radialPosition=item.upper())
 
-    def executeCommand(self, command):
-        """Handles execution of a ZooCommand
+    def executeCommand(self, command, *args):
+        """Handles execution of a ZooCommand from the marking menu item
 
         :param command:
-        :type command: ::class:`zoo.libs.command.command.ZooCommand`
+        :type command: :class:`zoo.libs.command.command.ZooCommand`
         """
         # command executor handles errors so just execute it
-        self.commandExecutor.execute(command.id)
+        self.commandExecutor.execute(command.id, **self.commandArguments)
 
-    def executePythonCommand(self, command):
+    def executePythonCommand(self, command, *args):
         pass
 
     def allowOptionBoxes(self):

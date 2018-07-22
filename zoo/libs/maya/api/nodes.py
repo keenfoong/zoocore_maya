@@ -631,7 +631,7 @@ def getMatrix(mobject):
     """ Returns the MMatrix of the given mobject
 
     :param mobject: MObject
-    :return: ::class:`om2.MMatrix`
+    :return: :class:`om2.MMatrix`
     """
     return plugs.getPlugValue(om2.MFnDependencyNode(mobject).findPlug("matrix", False))
 
@@ -645,7 +645,7 @@ def getWorldMatrix(mobject):
     """Returns the worldMatrix value as an MMatrix.
 
     :param mobject: the MObject that points the dagNode
-    :type mobject: ::class:`om2.MObject`
+    :type mobject: :class:`om2.MObject`
     :return: MMatrix
     """
     return plugs.getPlugValue(worldMatrixPlug(mobject))

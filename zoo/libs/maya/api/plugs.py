@@ -58,7 +58,7 @@ def connectVectorPlugs(sourceCompound, destinationCompound, connectionValues, fo
     :param connectionValues: Bool value for each axis if all axis are tre then just connect the compound
     :type connectionValues: seq(str)
 
-    :rtype: ::class:`om2.MDGModifier`
+    :rtype: :class:`om2.MDGModifier`
 
     """
     if all(connectionValues):

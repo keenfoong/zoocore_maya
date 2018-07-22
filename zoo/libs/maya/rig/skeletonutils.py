@@ -63,11 +63,11 @@ def convertToSkeleton(rootNode, prefix="skel_", parentObj=None):
     with their name prefixed with the "prefix" arg.
 
     :param rootNode: anything under this node gets converted.
-    :type rootNode: ::class:`om2.MObject`
+    :type rootNode: :class:`om2.MObject`
     :param prefix: The name to add to the node name .
     :type prefix: str
     :param parentObj: The node to parent to skeleton to.
-    :type parentObj: ::class:`om2.MObject`
+    :type parentObj: :class:`om2.MObject`
     :return: MObject
     """
     if parentObj is None:

@@ -1,44 +1,97 @@
+"""This module contains a centralized way of handling the many maya attribute types
+which are spread across many attribute classes and these constant values
+tend to conflict with each other. By using the kConstant type in this
+module in conjunction with :mod:`zoo.libs.maya.api.plugs` and
+:func:`zoo.libs.maya.api.nodes.addAttribute` functions you will have a single entry
+point in manipulating maya attributes.
+
+"""
 from maya.api import OpenMaya as om2
+
+#: kMFnNumericBoolean
 kMFnNumericBoolean = 0
+#: kMFnNumericShort
 kMFnNumericShort = 1
+#: kMFnNumericInt
 kMFnNumericInt = 2
+#: kMFnNumericLong
 kMFnNumericLong = 3
+#: kMFnNumericByte
 kMFnNumericByte = 3
+#: kMFnNumericFloat
 kMFnNumericFloat = 4
+#: kMFnNumericDouble
 kMFnNumericDouble = 5
+#: kMFnNumericAddr
 kMFnNumericAddr = 6
+#: kMFnNumericChar
 kMFnNumericChar = 8
+#: kMFnUnitAttributeDistance
 kMFnUnitAttributeDistance = 9
+#: kMFnUnitAttributeAngle
 kMFnUnitAttributeAngle = 10
+#: kMFnUnitAttributeTime
 kMFnUnitAttributeTime = 11
+#: kMFnkEnumAttribute
 kMFnkEnumAttribute = 12
+#: kMFnDataString
 kMFnDataString = 13
+#: kMFnDataMatrix
 kMFnDataMatrix = 14
+#: kMFnDataFloatArray
 kMFnDataFloatArray = 15
+#: kMFnDataDoubleArray
 kMFnDataDoubleArray = 16
+#: kMFnDataIntArray
 kMFnDataIntArray = 17
+#: kMFnDataPointArray
 kMFnDataPointArray = 18
+#: kMFnDataVectorArray
 kMFnDataVectorArray = 19
+#: kMFnDataStringArray
 kMFnDataStringArray = 20
+#: kMFnDataMatrixArray
 kMFnDataMatrixArray = 21
+#: kMFnCompoundAttribute
 kMFnCompoundAttribute = 22
+#: kMFnNumericInt64
 kMFnNumericInt64 = 23
+#: kMFnNumericLast
 kMFnNumericLast = 24
+#: kMFnNumeric2Double
 kMFnNumeric2Double = 25
+#: kMFnNumeric2Float
 kMFnNumeric2Float = 26
+#: kMFnNumeric2Int
 kMFnNumeric2Int = 27
+#: kMFnNumeric2Long
 kMFnNumeric2Long = 28
+#: kMFnNumeric2Short
 kMFnNumeric2Short = 29
+#: kMFnNumeric3Double
 kMFnNumeric3Double = 30
+#: kMFnNumeric3Float
 kMFnNumeric3Float = 31
+#: kMFnNumeric3Int
 kMFnNumeric3Int = 32
+#: kMFnNumeric3Long
 kMFnNumeric3Long = 33
+#: kMFnNumeric3Short
 kMFnNumeric3Short = 34
+#: kMFnNumeric4Double
 kMFnNumeric4Double = 35
+#: kMFnMessageAttribute
 kMFnMessageAttribute = 36
 
 
 def mayaTypeFromType(Type):
+    """Converts the zoo attribute constant type to the maya type.
+
+    :param Type: the zooType eg. kMFnMessageAttribute
+    :type Type: int
+    :return: the maya attribute object and maya data kConstant
+    :rtype: tuple(Maya Attribute, int)
+    """
     if Type == kMFnNumericBoolean:
         return om2.MFnNumericAttribute, om2.MFnNumericData.kBoolean
     elif Type == kMFnNumericByte:

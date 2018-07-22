@@ -144,7 +144,7 @@ def setChannelShowType(channelBox, value):
     cmds.channelBox(channelBox, edit=True, update=True)
 
 
-# global to store the bootstrap maya widgets, {widgetuuid: ::class:`BootStapWidget`}
+# global to store the bootstrap maya widgets, {widgetuuid: :class:`BootStapWidget`}
 # we use this to restore or close the bootstrap widgets
 BOOT_STRAPPED_WIDGETS = {}
 

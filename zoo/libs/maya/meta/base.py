@@ -858,22 +858,33 @@ class MetaBase(object):
     def removeParent(self, parent=None):
         """
         :param parent: The meta class to remove, if set to None then all parents will be removed
-        :type parent: ::class:`MetaBase` or None
+        :type parent: :class:`MetaBase` or None
         :rtype: bool
         """
         parentPlug = self._mfn.findPlug(MPARENT_ATTR_NAME, False)
         mod = om2.MDGModifier()
         with plugs.setLockedContext(parentPlug):
-            for i in xrange(parentPlug.evaluateNumElements()):
-                childrenElement = parentPlug.elementByPhysicalIndex(i)
+            for index in iter(parentPlug.getExistingArrayAttributeIndices()):
+                childrenElement = parentPlug.elementByLogicalIndex(index)
                 if childrenElement.isConnected:
                     mb = MetaBase(childrenElement.source().node())
-                    if mb == parent or parent is None:
+                    if parent is None or mb == parent:
                         mod.disconnect(childrenElement.source(), childrenElement)
                         mod.removeMultiInstance(childrenElement, False)
         mod.doIt()
         return True
 
+    def removeAllParents(self):
+        parentPlug = self._mfn.findPlug(MPARENT_ATTR_NAME, False)
+        mod = om2.MDGModifier()
+        with plugs.setLockedContext(parentPlug):
+            for index in iter(parentPlug.getExistingArrayAttributeIndices()):
+                childrenElement = parentPlug.elementByLogicalIndex(index)
+                if childrenElement.isConnected:
+                    mod.disconnect(childrenElement.source(), childrenElement)
+                    mod.removeMultiInstance(childrenElement, False)
+        mod.doIt()
+        return True
 
 class MetaScene(MetaBase):
     """Scene level Meta node
