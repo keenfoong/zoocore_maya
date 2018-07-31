@@ -233,6 +233,7 @@ class BootStrapWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
         self.setLayout(layout)
+        widget.setProperty('bootstrapWidget', self)
 
     def setSizeHint(self, size):
         self.preferredSize = size
