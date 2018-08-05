@@ -220,12 +220,17 @@ def createMultMatrix(name, inputs, output):
     compound = fn.findPlug("matrixIn", False)
     compound.evaluateNumElements()
 
-    for i in xrange(len(inputs)):
+    for i in xrange(1, len(inputs)):
         inp = inputs[i]
         if isinstance(inp, om2.MPlug):
             plugs.connectPlugs(inp, compound.elementByLogicalIndex(i))
             continue
         plugs.setPlugValue(compound.elementByLogicalIndex(i), inp)
+    inp = inputs[0]
+    if isinstance(inp, om2.MPlug):
+        plugs.connectPlugs(inp, compound.elementByLogicalIndex(0))
+    else:
+        plugs.setPlugValue(compound.elementByLogicalIndex(0), inp)
 
     plugs.connectPlugs(fn.findPlug("matrixSum", False), output)
 

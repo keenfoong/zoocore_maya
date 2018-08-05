@@ -250,10 +250,9 @@ class BootStrapWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
             cmds.deleteUI(name)
             cmds.workspaceControlState(name, remove=True)
         kwargs["retain"] = False
-        kwargs["uiScript"] = "import zoo.libs.maya.qt.mayaui as zoomayaui\nzoomayaui.rebuild({})".format(
-            self.objectName())
-        kwargs[
-            "closeCallback"] = 'import zoo.libs.maya.qt.mayaui as zoomayaui\nzoomayaui.bootstrapDestroyWindow("{' \
-                               '}")'.format(self.objectName())
+        # create the ui script which launches the custom widget, autodesk decided that string are god eeekkkkk!
+        kwargs["uiScript"] = "try: import zoo.libs.maya.qt.mayaui as zoomayaui;zoomayaui.rebuild({})\nexcept ImportError: pass".format(self.objectName())
+        # create the close callback string autodesk wacky design decisions again
+        kwargs["closeCallback"] = 'try: import zoo.libs.maya.qt.mayaui as zoomayaui;zoomayaui.bootstrapDestroyWindow("{}")\nexcept ImportError: pass'.format(self.objectName())
         super(BootStrapWidget, self).show(**kwargs)
 

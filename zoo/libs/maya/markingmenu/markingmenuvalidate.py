@@ -47,5 +47,5 @@ def validateAndBuild(parentMenu, nodeName):
         return 0
     validLayout.solve()
     mainMenu = menu.MarkingMenu(validLayout, "zooTriggerMenu", parentMenu, validLayout.executor)
-    mainMenu.attach(**{"nodes": [map(om2.MObjectHandle, triggerNodes)]})
+    mainMenu.attach(**{"nodes": map(om2.MObjectHandle, triggerNodes)})
     return 1

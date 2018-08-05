@@ -660,8 +660,7 @@ def decomposeMatrix(matrix, rotationOrder, space=om2.MSpace.kWorld):
 
 def parentInverseMatrixPlug(mobject):
     wm = om2.MFnDependencyNode(mobject).findPlug("parentInverseMatrix", False)
-    wm.evaluateNumElements()
-    return wm.elementByPhysicalIndex(0)
+    return wm.elementByLogicalIndex(0)
 
 
 def getWorldInverseMatrix(mobject):
