@@ -2,6 +2,7 @@ from qt import QtWidgets, QtCore, QtGui
 
 try:
     from shiboken2 import wrapInstance as wrapinstance
+    from shiboken2 import getCppPointer
 except:
     from shiboken import wrapInstance as wrapinstance
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
@@ -245,16 +246,50 @@ class BootStrapWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         super(BootStrapWidget, self).close(*args, **kwargs)
 
     def show(self, **kwargs):
+
         name = self.objectName()
         name = name + "WorkspaceControl"
         if cmds.workspaceControl(name, query=True, exists=True):
             cmds.deleteUI(name)
             cmds.workspaceControlState(name, remove=True)
         kwargs["retain"] = False
-        kwargs["uiScript"] = "import zoo.libs.maya.qt.mayaui as zoomayaui\nzoomayaui.rebuild({})".format(
-            self.objectName())
+
+        kwargs["uiScript"] = "import zoo.libs.maya.qt.mayaui as zoomayaui\nzoomayaui.rebuild({})".format(self.objectName())
         kwargs[
             "closeCallback"] = 'import zoo.libs.maya.qt.mayaui as zoomayaui\nzoomayaui.bootstrapDestroyWindow("{' \
                                '}")'.format(self.objectName())
-        super(BootStrapWidget, self).show(**kwargs)
+
+        #super(BootStrapWidget, self).show(**kwargs)
+        self.dockableShow(**kwargs)
+
+    def dockableShow(self, *args, **kwargs):
+        """Copied from mayaMixin
+
+        :See: setDockableParameters() for a list of parameters
+        """
+        # Update the dockable parameters first (if supplied)
+        if len(args) or len(kwargs):
+            self.setDockableParameters(*args, **kwargs)
+        elif self.parent() is None:
+            # Set parent to Maya main window if parent=None and no dockable parameters provided
+            self._makeMayaStandaloneWindow()
+
+        # Handle the standard setVisible() operation of show()
+        QtWidgets.QWidget.setVisible(self,
+                           True)  # NOTE: Explicitly calling QWidget.setVisible() as using super() breaks in PySide: super(self.__class__, self).show()
+
+        # Handle special case if the parent is a QDockWidget (dockControl)
+        parent = self.parent()
+        if parent:
+            parentName = parent.objectName()
+            if parentName and len(parentName) and cmds.workspaceControl(parentName, q=True, exists=True):
+                if cmds.workspaceControl(parentName, q=True, visible=True):
+                    cmds.workspaceControl(parentName, e=True, restore=True)
+                else:
+                    ptr = apiUI.MQtUtil.getCurrentParent()
+                    mw = wrapinstance(long(ptr), QtWidgets.QMainWindow)
+                    mw.show()
+                    return
+                    cmds.workspaceControl(parentName, e=True, visible=True)
+
 
