@@ -263,9 +263,8 @@ class BootStrapWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         self.dockableShow(**kwargs)
 
     def dockableShow(self, *args, **kwargs):
-        """Copied from mayaMixin
+        """Copied from mayaMixin.MayaQWidgetDockableMixin().show() so we can tweak the docking settings.
 
-        :See: setDockableParameters() for a list of parameters
         """
         # Update the dockable parameters first (if supplied)
         if len(args) or len(kwargs):
