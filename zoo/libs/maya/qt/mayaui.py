@@ -246,6 +246,7 @@ class BootStrapWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         super(BootStrapWidget, self).close(*args, **kwargs)
 
     def show(self, **kwargs):
+        print("mayaui")
 
         name = self.objectName()
         name = name + "WorkspaceControl"
@@ -259,11 +260,12 @@ class BootStrapWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
             "closeCallback"] = 'import zoo.libs.maya.qt.mayaui as zoomayaui\nzoomayaui.bootstrapDestroyWindow("{' \
                                '}")'.format(self.objectName())
 
-        #super(BootStrapWidget, self).show(**kwargs)
-        self.dockableShow(**kwargs)
+        super(BootStrapWidget, self).show(**kwargs)
+
+        #self.dockableShow(**kwargs)
 
     def dockableShow(self, *args, **kwargs):
-        """Copied from mayaMixin.MayaQWidgetDockableMixin().show() so we can tweak the docking settings.
+        """ Copied from mayaMixin.MayaQWidgetDockableMixin().show() so we can tweak the docking settings.
 
         """
         # Update the dockable parameters first (if supplied)
@@ -279,16 +281,22 @@ class BootStrapWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
 
         # Handle special case if the parent is a QDockWidget (dockControl)
         parent = self.parent()
+        print ("dockableShow", kwargs)
         if parent:
             parentName = parent.objectName()
             if parentName and len(parentName) and cmds.workspaceControl(parentName, q=True, exists=True):
                 if cmds.workspaceControl(parentName, q=True, visible=True):
                     cmds.workspaceControl(parentName, e=True, restore=True)
                 else:
-                    ptr = apiUI.MQtUtil.getCurrentParent()
-                    mw = wrapinstance(long(ptr), QtWidgets.QMainWindow)
-                    mw.show()
-                    return
-                    cmds.workspaceControl(parentName, e=True, visible=True)
+                    if kwargs['dockable']:
+                        print ("dockable")
+                        cmds.workspaceControl(parentName, e=True, visible=True)
+                    else:
+                        print("not dockable")
+                        # Create our own so we can have our own transparent background
+                        ptr = apiUI.MQtUtil.getCurrentParent()
+                        mw = wrapinstance(long(ptr), QtWidgets.QMainWindow)
+                        mw.show()
+
 
 
