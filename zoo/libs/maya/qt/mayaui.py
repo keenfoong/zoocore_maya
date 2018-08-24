@@ -207,7 +207,7 @@ class BootStrapWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         """
         pass
 
-    def __init__(self, widget, title, parent=None):
+    def __init__(self, widget, title, uid=None, parent=None, toolDefParent=None):
 
         # maya internals workouts the parent if None
         super(BootStrapWidget, self).__init__(parent=parent)
@@ -215,8 +215,9 @@ class BootStrapWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         self.preferredSize = self.PREFERRED_SIZE
         # bind this instance globally so the maya callback can talk to it
         global BOOT_STRAPPED_WIDGETS
-        uid = title
+        uid = uid or title
         self.setObjectName(uid)
+        self.toolDefParent = toolDefParent
         BOOT_STRAPPED_WIDGETS[uid] = self
 
         self.setWindowTitle(title)
@@ -246,8 +247,6 @@ class BootStrapWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         super(BootStrapWidget, self).close(*args, **kwargs)
 
     def show(self, **kwargs):
-        print("mayaui")
-
         name = self.objectName()
         name = name + "WorkspaceControl"
         if cmds.workspaceControl(name, query=True, exists=True):
@@ -281,7 +280,6 @@ class BootStrapWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
 
         # Handle special case if the parent is a QDockWidget (dockControl)
         parent = self.parent()
-        print ("dockableShow", kwargs)
         if parent:
             parentName = parent.objectName()
             if parentName and len(parentName) and cmds.workspaceControl(parentName, q=True, exists=True):
