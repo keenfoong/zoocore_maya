@@ -2,6 +2,7 @@ from qt import QtWidgets, QtCore, QtGui
 
 try:
     from shiboken2 import wrapInstance as wrapinstance
+    
 except:
     from shiboken import wrapInstance as wrapinstance
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
