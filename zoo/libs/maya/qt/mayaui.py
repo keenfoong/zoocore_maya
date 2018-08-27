@@ -206,7 +206,7 @@ class BootStrapWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         """
         pass
 
-    def __init__(self, widget, title, uid=None, parent=None, toolDefParent=None):
+    def __init__(self, widget, title, uid=None, parent=None):
 
         # maya internals workouts the parent if None
         super(BootStrapWidget, self).__init__(parent=parent)
@@ -216,7 +216,6 @@ class BootStrapWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         global BOOT_STRAPPED_WIDGETS
         uid = uid or title
         self.setObjectName(uid)
-        self.toolDefParent = toolDefParent
         BOOT_STRAPPED_WIDGETS[uid] = self
 
         self.setWindowTitle(title)
