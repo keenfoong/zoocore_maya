@@ -1,5 +1,6 @@
 from maya import cmds
 from zoo.libs.maya.qt import mayaui
+from zoo.libs.maya.api import nodes as apiNodes
 from qt import QtWidgets, QtCore
 
 
@@ -22,7 +23,7 @@ class NodeEditorWrapper(QtCore.QObject):
     def nodeEditorAsQtWidgets(nodeEditor):
         nodeEdPane = mayaui.toQtObject(nodeEditor)
         view = nodeEdPane.findChild(QtWidgets.QGraphicsView)
-        return view, view.scene()
+        return nodeEdPane, view, view.scene()
 
     @staticmethod
     def itemsRect(items):
@@ -36,20 +37,40 @@ class NodeEditorWrapper(QtCore.QObject):
         super(NodeEditorWrapper, self).__init__()
         if not nodeEditor:
             primary = getPrimaryNodeEditor()
+            self.setObjectName(primary)
             if not primary:
-                self.view, self.scene = None, None
+                self.editor, self.view, self.scene = None, None, None
             else:
-                self.view, self.scene = NodeEditorWrapper.nodeEditorAsQtWidgets(getPrimaryNodeEditor())
+                self.editor, self.view, self.scene = NodeEditorWrapper.nodeEditorAsQtWidgets(getPrimaryNodeEditor())
         else:
-            self.view, self.scene = NodeEditorWrapper.nodeEditorAsQtWidgets(nodeEditor)
+            self.editor, self.view, self.scene = NodeEditorWrapper.nodeEditorAsQtWidgets(nodeEditor)
+    
     def exists(self):
-        return True
+        objName = self.objectName()
+        if objName:
+            return cmds.nodeEditor(objName, exists=True)
+        return False
+
+    def show(self):
+        cmds.NodeEditorWindow()
+        self.editor, self.view, self.scene = NodeEditorWrapper.nodeEditorAsQtWidgets(getPrimaryNodeEditor())
+
     def selectedNodeItems(self):
         # check against type instead of isinstance since graphicsPathItem inherents from QGraphicsItem
         return [i for i in self.scene.selectedItems() if type(i) == QtWidgets.QGraphicsItem]
 
     def selectedConnections(self):
         return [i for i in self.scene.selectedItems() if type(i) == QtWidgets.QGraphicsPathItem]
+
+    def addNodes(self, nodes):
+        """Adds a list of nodes to the current node editor
+
+        :param nodes: a list of maya mobject representing valid nodes
+        :type nodes: list(:class:`om2.MObject`)
+        """
+
+        for n in nodes:
+            cmds.nodeEditor(self.objectName(), addNode=apiNodes.nameFromMObject(n))
 
     def alignLeft(self, items=None):
         items = items or self.selectedNodeItems()

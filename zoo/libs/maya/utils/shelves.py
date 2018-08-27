@@ -14,6 +14,9 @@ class Shelf(object):
     def setAsActive(self):
         cmds.tabLayout(primaryshelfLayout(), edit=True, selectTab=self.name)
 
+    def shortName(self):
+        return self.name.split("|")[-1]
+
     def createShelf(self):
         assert not cmds.shelfLayout(self.name, exists=True), "Shelf by the name {} already exists".format(self.name)
         self.name = cmds.shelfLayout(self.name, parent="ShelfLayout")
