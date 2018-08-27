@@ -206,7 +206,7 @@ class BootStrapWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         """
         pass
 
-    def __init__(self, widget, title, parent=None):
+    def __init__(self, widget, title, uid=None, parent=None, toolDefParent=None):
 
         # maya internals workouts the parent if None
         super(BootStrapWidget, self).__init__(parent=parent)
@@ -214,8 +214,9 @@ class BootStrapWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
         self.preferredSize = self.PREFERRED_SIZE
         # bind this instance globally so the maya callback can talk to it
         global BOOT_STRAPPED_WIDGETS
-        uid = title
+        uid = uid or title
         self.setObjectName(uid)
+        self.toolDefParent = toolDefParent
         BOOT_STRAPPED_WIDGETS[uid] = self
 
         self.setWindowTitle(title)
@@ -251,10 +252,46 @@ class BootStrapWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
             cmds.deleteUI(name)
             cmds.workspaceControlState(name, remove=True)
         kwargs["retain"] = False
-        kwargs["uiScript"] = "import zoo.libs.maya.qt.mayaui as zoomayaui\nzoomayaui.rebuild({})".format(
-            self.objectName())
-        kwargs[
-            "closeCallback"] = 'import zoo.libs.maya.qt.mayaui as zoomayaui\nzoomayaui.bootstrapDestroyWindow("{' \
-                               '}")'.format(self.objectName())
+        # create the ui script which launches the custom widget, autodesk decided that string are god eeekkkkk!
+        kwargs["uiScript"] = "try: import zoo.libs.maya.qt.mayaui as zoomayaui;zoomayaui.rebuild({})\nexcept ImportError: pass".format(self.objectName())
+        # create the close callback string autodesk wacky design decisions again
+        kwargs["closeCallback"] = 'try: import zoo.libs.maya.qt.mayaui as zoomayaui;zoomayaui.bootstrapDestroyWindow("{}")\nexcept ImportError: pass'.format(self.objectName())
         super(BootStrapWidget, self).show(**kwargs)
+
+        #self.dockableShow(**kwargs)
+
+    def dockableShow(self, *args, **kwargs):
+        """ Copied from mayaMixin.MayaQWidgetDockableMixin().show() so we can tweak the docking settings.
+
+        """
+        # Update the dockable parameters first (if supplied)
+        if len(args) or len(kwargs):
+            self.setDockableParameters(*args, **kwargs)
+        elif self.parent() is None:
+            # Set parent to Maya main window if parent=None and no dockable parameters provided
+            self._makeMayaStandaloneWindow()
+
+        # Handle the standard setVisible() operation of show()
+        QtWidgets.QWidget.setVisible(self,
+                           True)  # NOTE: Explicitly calling QWidget.setVisible() as using super() breaks in PySide: super(self.__class__, self).show()
+
+        # Handle special case if the parent is a QDockWidget (dockControl)
+        parent = self.parent()
+        if parent:
+            parentName = parent.objectName()
+            if parentName and len(parentName) and cmds.workspaceControl(parentName, q=True, exists=True):
+                if cmds.workspaceControl(parentName, q=True, visible=True):
+                    cmds.workspaceControl(parentName, e=True, restore=True)
+                else:
+                    if kwargs['dockable']:
+                        print ("dockable")
+                        cmds.workspaceControl(parentName, e=True, visible=True)
+                    else:
+                        print("not dockable")
+                        # Create our own so we can have our own transparent background
+                        ptr = apiUI.MQtUtil.getCurrentParent()
+                        mw = wrapinstance(long(ptr), QtWidgets.QMainWindow)
+                        mw.show()
+
+
 
