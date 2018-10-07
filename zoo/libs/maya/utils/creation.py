@@ -231,8 +231,8 @@ def createMultMatrix(name, inputs, output):
         plugs.connectPlugs(inp, compound.elementByLogicalIndex(0))
     else:
         plugs.setPlugValue(compound.elementByLogicalIndex(0), inp)
-
-    plugs.connectPlugs(fn.findPlug("matrixSum", False), output)
+    if output is not None:
+        plugs.connectPlugs(fn.findPlug("matrixSum", False), output)
 
     return multMatrix
 
@@ -258,14 +258,16 @@ def createDecompose(name, destination, translateValues, scaleValues, rotationVal
     """
     decompose = nodes.createDGNode(name, "decomposeMatrix")
     mfn = om2.MFnDependencyNode(decompose)
-    destFn = om2.MFnDependencyNode(destination)
+
     if inputMatrixPlug is not None:
         plugs.connectPlugs(inputMatrixPlug, mfn.findPlug("inputMatrix", False))
-    # translation
-    plugs.connectVectorPlugs(mfn.findPlug("outputTranslate", False), destFn.findPlug("translate", False),
-                             translateValues)
-    plugs.connectVectorPlugs(mfn.findPlug("outputRotate", False), destFn.findPlug("rotate", False), rotationValues)
-    plugs.connectVectorPlugs(mfn.findPlug("outputScale", False), destFn.findPlug("scale", False), scaleValues)
+    if destination:
+        destFn = om2.MFnDependencyNode(destination)
+        # translation
+        plugs.connectVectorPlugs(mfn.findPlug("outputTranslate", False), destFn.findPlug("translate", False),
+                                 translateValues)
+        plugs.connectVectorPlugs(mfn.findPlug("outputRotate", False), destFn.findPlug("rotate", False), rotationValues)
+        plugs.connectVectorPlugs(mfn.findPlug("outputScale", False), destFn.findPlug("scale", False), scaleValues)
     return decompose
 
 
