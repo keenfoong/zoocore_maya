@@ -123,10 +123,17 @@ class ParentConstraint(BaseConstraint):
 
 
 class MatrixConstraint(BaseConstraint):
-    # @todo optimize parentInverse matrix by reconnecting to driven parent
-    # @todo blending when needed
-    # @todo rediscovery of nodes
-    # @todo find drivers
+
+    # :todo optimize parentInverse matrix by reconnecting to driven parent
+    # :todo blending when needed
+    # :todo rediscovery of nodes
+    # :todo find drivers
+
+    def __init__(self, node=None, name=None):
+        super(MatrixConstraint, self).__init__(node, name)
+        # if the constraint should be a dynamic constraint, if True then the parent inverse plug
+        # from the child is left connected, else only the values will be copied to the offset
+        self.dynamic = False
 
     def drivenObject(self):
         pass
@@ -136,22 +143,28 @@ class MatrixConstraint(BaseConstraint):
 
     def create(self, driver, driven, skipScale=None, skipRotate=None, skipTranslate=None, maintainOffset=False):
         composename = "_".join([self.name, "wMtxCompose"])
-        decompose = creation.createDecompose(composename, destination=driven,
-                                             translateValues=skipTranslate,
-                                             scaleValues=skipScale, rotationValues=skipRotate)
-        decomposeFn = om2.MFnDependencyNode(decompose)
+
         multMatrix = None
         if maintainOffset:
             offset = nodes.getOffsetMatrix(driver, driven)
             offsetname = "_".join([self.name, "wMtxOffset"])
+            parentInverse = nodes.parentInverseMatrixPlug(driven) if self.dynamic else plugs.getPlugValue(
+                nodes.parentInverseMatrixPlug(driven))
 
             multMatrix = creation.createMultMatrix(offsetname,
                                                    inputs=(offset, nodes.worldMatrixPlug(driver),
-                                                           nodes.parentInverseMatrixPlug(driven)),
-                                                   output=decomposeFn.findPlug("inputMatrix", False))
-
+                                                           parentInverse),
+                                                   output=None)
+            outputPlug = om2.MFnDependencyNode(multMatrix).findPlug("matrixSum", False)
         else:
-            plugs.connectPlugs(nodes.worldMatrixPlug(driver), decomposeFn.findPlug("inputMatrix", False))
+            outputPlug = nodes.worldMatrixPlug(driver)
+
+        decompose = creation.createDecompose(composename, destination=driven,
+                                             translateValues=skipTranslate,
+                                             scaleValues=skipScale, rotationValues=skipRotate)
+
+        decomposeFn = om2.MFnDependencyNode(decompose)
+        plugs.connectPlugs(outputPlug, decomposeFn.findPlug("inputMatrix", False))
         self.node = om2.MObjectHandle(decompose)
         mapping = dict(skipScale=skipScale,
                        skipRotate=skipRotate,
@@ -275,7 +288,6 @@ def addConstraintMap(node, driven, utilities, kwargsMap=None):
         if drive is None:
             continue
         drivenFn = om2.MFnDependencyNode(drive)
-
         if drivenFn.hasAttribute("constraint"):
             p = drivenFn.findPlug("constraint", False)
             elementP = plugs.nextAvailableElementPlug(p)

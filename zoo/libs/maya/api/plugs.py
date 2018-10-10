@@ -1109,11 +1109,14 @@ def nextAvailableElementPlug(arrayPlug):
         return arrayPlug.elementByLogicalIndex(0)
     for i in xrange(1, count):
         availPlug = arrayPlug.elementByPhysicalIndex(i)
-        connected = False
-        for childIndex in range(availPlug.numChildren()):
-            if availPlug.child(childIndex).isSource:
-                connected = True
-                break
+        if arrayPlug.isCompound:
+            connected = False
+            for childIndex in range(availPlug.numChildren()):
+                if availPlug.child(childIndex).isSource:
+                    connected = True
+                    break
+        else:
+            connected = availPlug.isSource
         if connected:
             continue
         if availPlug.isSource:
