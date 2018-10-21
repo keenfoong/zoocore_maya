@@ -29,7 +29,7 @@ class MetaCamera(base.MetaBase):
             self._mfn = om2.MFnDependencyNode(node)
 
         if node.hasFn(om2.MFn.kTransform):
-            node = list(nodes.iterChildren(self.mobject(), False, om2.MFn.kCamera))[0]
+            node = list(nodes.iterChildren(self.mobject(), False, (om2.MFn.kCamera,)))[0]
         self.camMfn = om2.MFnCamera(node)
 
     def metaAttributes(self):

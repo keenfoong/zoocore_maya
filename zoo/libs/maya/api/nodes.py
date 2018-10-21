@@ -283,6 +283,7 @@ def childPathsByFn(path, fn):
     """
     return [p for p in childPaths(path) if p.hasFn(fn)]
 
+
 def iterShapes(path, filterTypes=()):
     """Generator function which all the shape dagpaths directly below this dagpath
 
@@ -295,11 +296,13 @@ def iterShapes(path, filterTypes=()):
         if not filterTypes or dagPath.apiType() in filterTypes:
             yield dagPath
 
+
 def shapes(path, filterTypes=()):
     """
     :Depreciated Use IterShapes()
     """
     return list(iterShapes(path, filterTypes))
+
 
 def shapeAtIndex(path, index):
     """Finds and returns the shape DagPath under the specified path for the index
@@ -356,7 +359,7 @@ def setParent(child, newParent, maintainOffset=False):
 @contextlib.contextmanager
 def childContext(parent):
     children = []
-    for child in iterChildren(parent, False, om2.MFn.kTransform):
+    for child in iterChildren(parent, False, (om2.MFn.kTransform, om2.MFn.kJoint)):
         setParent(child, om2.MObject.kNullObj)
         children.append(child)
     yield
@@ -448,9 +451,9 @@ def iterChildren(mObject, recursive=False, filter=None):
     :type mObject: MObject
     :param recursive: Whether to do a recursive search
     :type recursive: bool
-    :param filter: om.MFn or None, the node type to find, can be either 'all' for returning everything or a om.MFn type constant
-                    does not include shapes
-    :type filter: int
+    :param filter: tuple(om.MFn) or None, the node type to find, can be either 'all' for returning everything or a \
+    om.MFn type constant does not include shapes
+    :type filter: tuple or None
     :return: om.MObject
     """
     dagNode = om2.MFnDagNode(mObject)
@@ -460,7 +463,7 @@ def iterChildren(mObject, recursive=False, filter=None):
 
     for index in xrange(childCount):
         childObj = dagNode.child(index)
-        if childObj.apiType() == filter or filter is None:
+        if childObj.apiType() in filter or filter is None:
             yield childObj
             if recursive:
                 for x in iterChildren(childObj, recursive, filter):
@@ -1146,7 +1149,7 @@ def deserializeNode(data, parent=None):
     if nodeType is None:
         return None, []
     req = data.get("requirements", "")
-    if req and not cmds.pluginInfo(req, loaded=True):
+    if req and not cmds.pluginInfo(req, loaded=True, query=True):
         try:
             cmds.loadPlugin(req)
         except RuntimeError:
@@ -1423,7 +1426,7 @@ def swapOutgoingConnections(source, destination, plugs=None):
         if plugs and sourcePlug not in plugs:
             continue
         name = sourcePlug.partialName(includeNonMandatoryIndices=True, useLongNames=True,
-                                  includeInstancedIndices=True)
+                                      includeInstancedIndices=True)
 
         if not destFn.hasAttribute(name):
             continue

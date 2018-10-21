@@ -1,3 +1,4 @@
+import contextlib
 from contextlib import contextmanager
 
 from maya.api import OpenMaya as om2
@@ -205,7 +206,7 @@ class GraphDeserializer(dict):
             currentConnections = n.get("connections", [])
             for conn in currentConnections:
                 conn["destination"] = newNode
-                conn["destinationPlug"] = plugs.asMPlug(nodes.nameFromMObject(newNode) + "." + conn["destinationPlug"])
+                conn["destinationPlug"] = ".".join([nodes.nameFromMObject(newNode), conn["destinationPlug"]])
             connections.extend(currentConnections)
         if connections:
             for conn in connections:
@@ -214,7 +215,7 @@ class GraphDeserializer(dict):
                 source = conn["source"]
                 if isinstance(conn["source"], om2.MObject):
                     source = nodes.nameFromMObject(conn["source"])
-                conn["sourcePlug"] = plugs.asMPlug(source + "." + conn["sourcePlug"])
+                conn["sourcePlug"] = ".".join([source, conn["sourcePlug"]])
             self._deserializeConnections(connections)
         return createdNodes
 
@@ -225,9 +226,16 @@ class GraphDeserializer(dict):
             destinationNode = conn["destination"]
             if sourceNode is None or destinationNode is None:
                 continue
+            # connect the source and destination plug
             try:
-                plugs.connectPlugs(conn["sourcePlug"], conn["destinationPlug"], force=True)
-            except RuntimeError as er:
+                sourcePlug = plugs.asMPlug(conn["sourcePlug"])
+                destinationPlug = plugs.asMPlug(conn["destinationPlug"])
+                with contextlib.nested(plugs.setLockedContext(sourcePlug),
+                                       plugs.setLockedContext(destinationPlug)):
+                    plugs.connectPlugs(sourcePlug,
+                                       destinationPlug,
+                                       force=True)
+            except RuntimeError:
                 continue
 
 
@@ -235,7 +243,7 @@ def aimNodes(targetNode, driven, aimVector=None,
              upVector=None):
     for i in iter(driven):
         children = []
-        for child in list(nodes.iterChildren(i, False, om2.MFn.kTransform)):
+        for child in list(nodes.iterChildren(i, False, (om2.MFn.kTransform, om2.MFn.kJoint))):
             nodes.setParent(child, None, True)
             children.append(child)
         mayamath.aimToNode(i, targetNode, aimVector, upVector)

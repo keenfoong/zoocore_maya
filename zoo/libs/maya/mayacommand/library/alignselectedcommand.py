@@ -37,7 +37,6 @@ class AlignSelectedCommand(command.ZooCommand):
         be used instead
 
         """
-
         scene.aimNodes(targetNode=target.object(), driven=[i.object() for i in driven], aimVector=aimVector, upVector=upVector)
         return True
 
@@ -47,7 +46,7 @@ class AlignSelectedCommand(command.ZooCommand):
         for node, rotation in iter(self.transformations):
             children = []
             node = node.object()
-            for child in list(nodes.iterChildren(node, False, om2.MFn.kTransform)):
+            for child in list(nodes.iterChildren(node, False, (om2.MFn.kTransform, om2.MFn.kJoint))):
                 nodes.setParent(child, None, True)
                 children.append(child)
             nodes.setRotation(node, rotation)
