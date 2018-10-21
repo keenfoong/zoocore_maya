@@ -21,16 +21,22 @@ class Shelf(object):
         assert not cmds.shelfLayout(self.name, exists=True), "Shelf by the name {} already exists".format(self.name)
         self.name = cmds.shelfLayout(self.name, parent="ShelfLayout")
 
-    def addButton(self, label, tooltip=None, icon="commandButton.png", command=None, doubleCommand=None, Type="python"):
+    def addButton(self, label, tooltip=None, icon="commandButton.png", command=None, doubleCommand=None, Type="python",
+                  style="iconOnly"):
         """Adds a shelf button with the specified label, command, double click command and image."""
 
         cmds.setParent(self.name)
         command = command or ""
         doubleCommand = doubleCommand or ""
-        return cmds.shelfButton(width=37, height=37, image=icon or "", label=label, command=command,
-                                doubleClickCommand=doubleCommand, annotation=tooltip or "",
-                                imageOverlayLabel=label, overlayLabelBackColor=self.labelBackground,
-                                overlayLabelColor=self.labelColour, sourceType=Type)
+        kwargs = dict(width=34, height=34, image=icon or "", label=label, command=command,
+                      doubleClickCommand=doubleCommand, annotation=tooltip or "",
+                      overlayLabelBackColor=self.labelBackground,
+                      style=style,
+                      overlayLabelColor=self.labelColour,
+                      sourceType=Type)
+        if style is not "iconOnly":
+            kwargs["imageOverlayLabel"] = label
+        return cmds.shelfButton(**kwargs)
 
     @staticmethod
     def addMenuItem(parent, label, command="", icon=""):
