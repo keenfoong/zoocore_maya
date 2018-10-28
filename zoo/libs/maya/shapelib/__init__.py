@@ -1,7 +1,8 @@
 """This module holds utility methods for dealing with nurbscurves
 """
 import os
-from zoo.libs.utils import file
+
+from zoo.libs.utils import filesystem
 
 from zoo.libs.maya.api import nodes
 from zoo.libs.maya.api import curves
@@ -40,7 +41,7 @@ def loadFromLib(shapeName, parent=None):
             continue
         name = os.path.splitext(f)[0]
         if name == shapeName:
-            data = file.loadJson(os.path.join(os.path.normpath(lib), f))
+            data = filesystem.loadJson(os.path.join(os.path.normpath(lib), f))
             if parent is not None and data:
                 return curves.createCurveShape(parent, data)
             if data:
@@ -93,6 +94,6 @@ def saveToLib(node, name, override=True):
         if name in names:
             raise ValueError("name-> {} already exists in the shape library!".format(name))
     path = os.path.join(lib, name)
-    file.saveJson(data, path)
+    filesystem.saveJson(data, path)
 
     return data, path

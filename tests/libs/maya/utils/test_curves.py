@@ -4,10 +4,10 @@ import uuid
 
 from maya import cmds
 
+from zoo.libs.utils import filesystem
 from tests import mayatestutils
 from zoo.libs.maya.api import nodes
 from zoo.libs.maya import shapelib
-from zoo.libs.utils import file
 
 
 class TestShapeLib(mayatestutils.BaseMayaTest):
@@ -31,7 +31,7 @@ class TestShapeLib(mayatestutils.BaseMayaTest):
     def test_shapeSaveToLibrary(self):
         circle = cmds.circle(ch=False)[0]
         self.data, self.shapePath = shapelib.saveToLib(nodes.asMObject(circle), "circleTest")
-        data = file.loadJson(self.shapePath)
+        data = filesystem.loadJson(self.shapePath)
 
         for shapeName, shapeData in iter(data.items()):
             self.assertTrue("cvs" in shapeData)

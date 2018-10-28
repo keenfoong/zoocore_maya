@@ -2,9 +2,9 @@ import os
 import pprint
 from functools import partial
 
+from zoo.libs.utils import filesystem
 from zoo.libs.maya.qt import mayaui
 from qt import QtWidgets
-from zoo.libs.utils import file
 from zoo.libs.utils import classtypes
 from zoo.libs.utils import general
 from zoo.libs.utils import zlogging
@@ -61,7 +61,7 @@ class LayoutRegistry(object):
                     layoutFile = os.path.join(root, f)
                     try:
                         if f.endswith(".mmlayout"):
-                            data = file.loadJson(layoutFile)
+                            data = filesystem.loadJson(layoutFile)
                             self.layouts[data["id"]] = Layout(data)
                     # If the Json data is invalid(formatted) it will raise a valueError without a file location
                     # so raise something useful
