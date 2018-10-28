@@ -188,6 +188,21 @@ def iterCurvePoints(dagPath, count, space=om2.MSpace.kObject):
         current += dist
 
 
+def matchCurves(driver, targets):
+    """Function that matches the curves from the driver to all the targets.
+
+    :param driver: the transform node of the shape to match
+    :type driver: om2.MObject
+    :param targets: A list of transform that will have the shapes replaced
+    :type targets: list(om2.MObject) or tuple(om2.MObject)
+    """
+    driverdata = serializeCurve(driver)
+
+    for target in targets:
+        cmds.delete([nodes.nameFromMObject(i.node()) for i in nodes.iterShapes(om2.MDagPath.getAPathTo(target))])
+        createCurveShape(target, driverdata)
+
+
 def curveCvs(dagPath, space=om2.MSpace.kObject):
     """Generator Function to iterate and return the position, normal and tangent for the curve with the given point count.
 

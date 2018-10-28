@@ -763,12 +763,16 @@ class MetaBase(object):
                         return coParent
                 parent = coParent
 
-    def metaParents(self):
+    def metaParents(self, recursive=False):
         parentPlug = self._mfn.findPlug(MPARENT_ATTR_NAME, False)
         for i in xrange(parentPlug.evaluateNumElements()):
             childrenElement = parentPlug.elementByPhysicalIndex(i)
             if childrenElement.isConnected:
-                yield MetaBase(childrenElement.source().node())
+                parentMeta =  MetaBase(childrenElement.source().node())
+                yield parentMeta
+                if recursive:
+                    for i in parentMeta.metaParents(recursive=recursive):
+                        yield i
 
     def iterChildren(self, fnFilters=None, includeMeta=False):
         filterTypes = fnFilters or ()
