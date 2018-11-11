@@ -769,9 +769,22 @@ def getRotation(obj, space, asQuaternion=False):
 
 
 def addProxyAttribute(node, sourcePlug, **kwargs):
-    attr1 = addAttribute(node, **kwargs)
-    attr1.isProxyAttribute = True
-    plugs.connectPlugs(sourcePlug, om2.MPlug(node, attr1.object()))
+    if kwargs["Type"] == attrtypes.kMFnCompoundAttribute:
+        attr1 = addCompoundAttribute(node, attrMap=kwargs["children"], **kwargs)
+        attrPlug = om2.MPlug(node, attr1.object())
+        # turn all the child plugs to proxy, since maya doesn't support doing this
+        # at the compound level, then do the connection between the matching children
+        for childIdx in xrange(attrPlug.numChildren()):
+            childPlug = attrPlug.child(childIdx)
+            attr = childPlug.attribute()
+            # turn the proxy state on and do the connection
+            plugs.getPlugFn(attr)(attr).isProxyAttribute = True
+            plugs.connectPlugs(sourcePlug.child(childIdx), attrPlug.child(childIdx))
+    else:
+        attr1 = addAttribute(node, **kwargs)
+        attr1.isProxyAttribute = True
+        plugs.connectPlugs(sourcePlug, om2.MPlug(node, attr1.object()))
+
     return attr1
 
 
@@ -803,9 +816,9 @@ def addCompoundAttribute(node, longName, shortName, attrMap, isArray=False, **kw
     for attrData in attrMap:
         child = addAttribute(node, shortName=attrData["name"], longName=attrData["name"], attrType=attrData["Type"],
                              apply=False, **attrData)
-
         attrObj = child.object()
         compound.addChild(attrObj)
+
         children.append(om2.MPlug(node, attrObj))
 
     mod = om2.MDGModifier()

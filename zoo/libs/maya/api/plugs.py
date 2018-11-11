@@ -965,7 +965,8 @@ def iterChildren(plug):
 
 def plugType(plug):
     obj = plug.attribute()
-
+    if obj.hasFn(om2.MFn.kCompoundAttribute):
+        return attrtypes.kMFnCompoundAttribute
     if obj.hasFn(om2.MFn.kNumericAttribute):
         nAttr = om2.MFnNumericAttribute(obj)
         dataType = nAttr.numericType()
@@ -1117,9 +1118,7 @@ def nextAvailableElementPlug(arrayPlug):
                     break
         else:
             connected = availPlug.isSource
-        if connected:
-            continue
-        if availPlug.isSource:
+        if connected or availPlug.isSource:
             continue
         return availPlug
     else:
