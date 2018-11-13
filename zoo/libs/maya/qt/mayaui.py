@@ -537,7 +537,7 @@ mw.setWindowFlags(mw.windowFlags() | QtCore.Qt.FramelessWindowHint)"""
                     y = dockPos.y()
                 if width == None:
                     width = self.width()
-                if height == None:
+                if height is None:
                     height = self.height()
                 # Turn into a standalone window and reposition
                 currentVisibility = self.isVisible()
