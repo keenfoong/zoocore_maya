@@ -552,7 +552,7 @@ mw.setWindowFlags(mw.windowFlags() | QtCore.Qt.FramelessWindowHint)"""
                     height = self.height()
                 self.resize(width, height)
             if (x != None) or (y != None):
-                if x == None:
+                if x is None:
                     x = self.x()
                 if y == None:
                     y = self.y()
