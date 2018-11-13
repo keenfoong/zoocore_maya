@@ -7,6 +7,9 @@ from maya.api import OpenMayaAnim as om2Anim
 from zoo.libs.maya.api import scene
 from zoo.libs.maya.api import generic
 from zoo.libs.maya.api import nodes
+from zoo.libs.utils import filesystem, zlogging
+
+logger = zlogging.getLogger(__name__)
 
 
 class SkinCluster(object):
@@ -121,13 +124,69 @@ def serializeClusters(clusters):
 
 
 def serializeSkinWeightsFromShapes(shapes):
+    """Serialize's the geometry shape skinCluster weights to a dict
+
+    :example:
+        
+        {my|objectName: {"points":   [[11.720806121826172,11.951449566072865,0.47714900970458984,1]],
+            "skinData": [{
+                "name": "roboRig:skinCluster_hand01_L",
+                "maxInfluence": 5,
+                "maintainMaxInfluences": true,
+                "skinningMethod": 0,
+                "weights": {
+                    "|L_wrist": [1,0,1,0]
+                    }]
+                    }
+        }
+    
+    :param shapes: The MObjects representing the shape nodes to serialize
+    :type shapes: om2.MObject 
+    :rtype: dict
+    """
+
     data = {}
     for sh in shapes:
         clusters = clusterUpstreamFromNode(sh)
         if not clusters:
             continue
         fn = om2.MFnMesh(om2.MFnDagNode(sh).getPath())
-        data[generic.stripNamespaceFromName(nodes.nameFromMObject(sh))] = {"points": map(tuple, fn.getPoints(om2.MSpace.kWorld)),
-                                                                           "skinData": serializeClusters(clusters)
-                                                                           }
+        data[generic.stripNamespaceFromName(nodes.nameFromMObject(sh))] = {
+            "points": map(tuple, fn.getPoints(om2.MSpace.kWorld)),
+            "skinData": serializeClusters(clusters)
+            }
     return data
+
+
+def applyWeightsFromData(data, shape):
+    pass
+
+
+def createAndImportWeightsFromShapes(filePath, shapes):
+    """Loads the skin data from the filePath and loads it on the shapeNodes.
+
+    If any of the shapes have existing skinClusters then the weights will be replaced.
+    Otherwise a skin cluster will be created.
+
+    :param filePath: The json file to load, must be in the same format as the return data of :func:`serialzieSkinWeightsFromShapes`
+    :type filePath: str
+    :param shapes: list of om2.MObjects representing the geometry shape nodes to load the data onto
+    :type shapes: [type]
+    """
+
+    # read in the json
+    skinInfo = filesystem.loadJson(filePath)
+    if not skinInfo:
+        logger.error("Failed to load skin file: {}".format(filePath))
+        raise RuntimeError("Failed to load skin file: {}".format(filePath))
+
+    # ok now grab the mapping between the dataFile and the shape nodes this is done by name
+    # :todo: custom mapping
+    for shape in shapes:
+        path = om2.MDagPath.getAPathTo(shape)
+        name = generic.stripNamespaceFromName(path.fullPathName())
+        mappedInfo = skinInfo.get(name)
+        if mappedInfo is None:
+            print "Skipping: {} since it doesn't exist"
+            continue
+        applyWeightsFromData(mappedInfo, path)
