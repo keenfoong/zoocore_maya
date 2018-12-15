@@ -175,6 +175,7 @@ class GraphDeserializer(dict):
         connections = []
         for k, n in self.items():
             # skip any currently processed nodes.
+
             if k not in self.results:
                 parent = n.get("parent")
                 parentNode = None
@@ -187,26 +188,27 @@ class GraphDeserializer(dict):
                         parentData = self[parent]
                         parentNode, attrs = nodes.deserializeNode(parentData,
                                                                   self.results.get(self[parent]["parent"]))
-                        shapeData = parentData.get("shape")
                         createdNodes.append(parentNode)
-                        if shapeData:
-                            curves.createCurveShape(parentNode, shapeData)
                         self.results[parent] = parentNode
                         connections.extend(parentData.get("connections", []))
 
                 newNode, attrs = nodes.deserializeNode(n, parentNode)
+                if not newNode:
+                    continue
                 createdNodes.append(newNode)
-                shapeData = n.get("shape")
-                if shapeData:
-                    curves.createCurveShape(parentNode, shapeData)
+
                 self.results[k] = newNode
             else:
                 newNode = self.results[k]
+                if not newNode:
+                    continue
             # remap the connection destination and destinationPlug to be the current node plus plug
             currentConnections = n.get("connections", [])
             for conn in currentConnections:
                 conn["destination"] = newNode
                 conn["destinationPlug"] = ".".join([nodes.nameFromMObject(newNode), conn["destinationPlug"]])
+            if not currentConnections:
+                continue
             connections.extend(currentConnections)
         if connections:
             for conn in connections:
@@ -230,11 +232,13 @@ class GraphDeserializer(dict):
             try:
                 sourcePlug = plugs.asMPlug(conn["sourcePlug"])
                 destinationPlug = plugs.asMPlug(conn["destinationPlug"])
+                if destinationPlug.isDestination:
+                    continue
                 with contextlib.nested(plugs.setLockedContext(sourcePlug),
                                        plugs.setLockedContext(destinationPlug)):
                     plugs.connectPlugs(sourcePlug,
                                        destinationPlug,
-                                       force=True)
+                                       force=False)
             except RuntimeError:
                 continue
 
