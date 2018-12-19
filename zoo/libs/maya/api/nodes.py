@@ -9,6 +9,9 @@ from zoo.libs.utils import zoomath
 
 logger = logging.getLogger(__name__)
 
+MIRROR_BEHAVIOUR = 0
+MIRROR_ORIENTATION = 1
+
 
 def asMObject(name):
     """ Returns the MObject from the given name
@@ -1253,7 +1256,7 @@ def mirrorJoint(node, parent, translate, rotate):
     setTranslation(node, translation)
 
 
-def mirrorTransform(node, parent, translate, rotate):
+def mirrorTransform(node, parent, translate, rotate, mirrorFunction=MIRROR_BEHAVIOUR):
     """ Mirror's the translation and rotation of a node relative to another unless the parent
     is specified as om2.MObject.kNullObj in which case world.
 
@@ -1265,31 +1268,45 @@ def mirrorTransform(node, parent, translate, rotate):
     :type translate: tuple(str)
     :param rotate: "xy", "yz" or "xz"
     :type rotate: str
+    :param mirrorFunction:
+    :type mirrorFunction: int
     :return: mirrored translation vector and the mirrored rotation matrix
     :rtype: om2.MVector, om2.MMatrix
     """
     currentMat = getWorldMatrix(node)
 
     transMat = om2.MTransformationMatrix(currentMat)
+
     translation = transMat.translation(om2.MSpace.kWorld)
     if len(translate) == 3:
         translation *= -1
     else:
         for i in translate:
             translation[zoomath.AXIS[i]] *= -1
+    transMat.setTranslation(translation, om2.MSpace.kWorld)
     # mirror the rotation on a plane
     quat = transMat.rotation(asQuaternion=True)
-    if rotate == "xy":
-        quat.z *= -1
-        quat.w *= -1
-    elif rotate == "yz":
-        quat.x *= -1
-        quat.w *= -1
+    # behavior
+    if mirrorFunction == 0:
+        if rotate == "xy":
+            newQuat = om2.MQuaternion(quat.y * -1, quat.x, quat.w, quat.z * -1)
+        elif rotate == "yz":
+            newQuat = om2.MQuaternion(quat.w * -1, quat.z, quat.y * -1, quat.x)
+        else:
+            newQuat = om2.MQuaternion(quat.z, quat.w, quat.x * -1, quat.y * -1)
     else:
-        quat.y *= -1
-        quat.w *= -1
-    transMat.setRotation(quat)
+        if rotate == "xy":
+            quat.z *= -1
+            quat.w *= -1
+        elif rotate == "yz":
+            quat.x *= -1
+            quat.w *= -1
+        else:
+            quat.y *= -1
+            quat.w *= -1
+    transMat.setRotation(newQuat)
     rot = transMat.asRotateMatrix()
+
     # put the mirror rotationMat in the space of the parent
     if parent != om2.MObject.kNullObj:
         parentMatInv = getParentInverseMatrix(parent)
