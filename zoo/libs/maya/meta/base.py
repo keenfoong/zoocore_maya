@@ -87,7 +87,7 @@ def iterSceneMetaNodes():
 
     :rtype: Generator(MObject)
     """
-    #todo: add a nodetype filter
+    # todo: add a nodetype filter
     t = om2.MItDependencyNodes()
     while not t.isDone():
         node = t.thisNode()
@@ -363,9 +363,9 @@ class MetaBase(object):
     def metaAttributes(self):
         return [{"name": MCLASS_ATTR_NAME, "value": self.__class__.__name__, "Type": attrtypes.kMFnDataString},
                 {"name": MVERSION_ATTR_NAME, "value": "1.0.0", "Type": attrtypes.kMFnDataString},
-                {"name": MPARENT_ATTR_NAME, "value": None, "Type": attrtypes.kMFnMessageAttribute, "isArray":True,
-                 "lock":False},
-                {"name": MCHILDREN_ATTR_NAME, "value": None, "Type": attrtypes.kMFnMessageAttribute, "lock":False}]
+                {"name": MPARENT_ATTR_NAME, "value": None, "Type": attrtypes.kMFnMessageAttribute, "isArray": True,
+                 "lock": False},
+                {"name": MCHILDREN_ATTR_NAME, "value": None, "Type": attrtypes.kMFnMessageAttribute, "lock": False}]
 
     def __getattr__(self, name):
         if name.startswith("_"):
@@ -412,6 +412,11 @@ class MetaBase(object):
 
     def __repr__(self):
         return "{}:{}".format(self.__class__.__name__, self.__dict__)
+
+    def isRoot(self):
+        for i in self.metaParents():
+            return True
+        return False
 
     def mClassType(self):
         return self.mClass.asString()
@@ -768,7 +773,7 @@ class MetaBase(object):
         for i in xrange(parentPlug.evaluateNumElements()):
             childrenElement = parentPlug.elementByPhysicalIndex(i)
             if childrenElement.isConnected:
-                parentMeta =  MetaBase(childrenElement.source().node())
+                parentMeta = MetaBase(childrenElement.source().node())
                 yield parentMeta
                 if recursive:
                     for i in parentMeta.metaParents(recursive=recursive):
@@ -889,6 +894,7 @@ class MetaBase(object):
                     mod.removeMultiInstance(childrenElement, False)
         mod.doIt()
         return True
+
 
 class MetaScene(MetaBase):
     """Scene level Meta node

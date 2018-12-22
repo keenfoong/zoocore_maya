@@ -127,7 +127,7 @@ class TestNodes(mayatestutils.BaseMayaTest):
         self.assertEquals(parent.partialPathName(), "group1")
 
     def test_deleteNode(self):
-        node = om2.MObjectHandle(nodes.asMObject(cmds.createNode("transform")))
+        node = om2.MObjectHandle(nodes.createDagNode("testTransform", "transform"))
 
         self.assertTrue(node.isValid() and node.isAlive())
         nodes.delete(node.object())

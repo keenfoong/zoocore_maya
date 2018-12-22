@@ -466,7 +466,7 @@ def iterChildren(mObject, recursive=False, filter=None):
 
     for index in xrange(childCount):
         childObj = dagNode.child(index)
-        if childObj.apiType() in filter or filter is None:
+        if filter or childObj.apiType() in filter:
             yield childObj
             if recursive:
                 for x in iterChildren(childObj, recursive, filter):
@@ -483,12 +483,12 @@ def breadthFirstSearchDag(node, filter=None):
             yield t
 
 
-def getChildren(mObject, recursive=False, filter=om2.MFn.kTransform):
+def getChildren(mObject, recursive=False, filter=(om2.MFn.kTransform, )):
     """This function finds and returns all children mobjects under the given transform, if recursive then including subchildren.
 
     :param mObject: om.MObject, the mObject of the transform to search under
     :param recursive: bool
-    :param filter: int(om.MFn.kTransform), the node type to filter by
+    :param filter: tuple(om.MFn.kTransform, the node type to filter by
     :return: list(MFnDagNode)
     """
     return tuple(iterChildren(mObject, recursive, filter))
@@ -608,7 +608,7 @@ def getParent(mobject):
 
 def isValidMObject(node):
     mo = om2.MObjectHandle(node)
-    return not mo.isValid() or not mo.isAlive()
+    return mo.isValid() and mo.isAlive()
 
 
 def delete(node):

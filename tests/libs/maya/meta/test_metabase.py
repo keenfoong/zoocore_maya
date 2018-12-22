@@ -8,16 +8,13 @@ from maya.api import OpenMaya as om2
 
 class TestMetaData(mayatestutils.BaseMayaTest):
     def setUp(self):
-        self.meta = base.MetaBase(name="testNode")
+        self.meta = base.MetaBase(name="testNode", lock=True)
 
     def test_hasDefaultAttributes(self):
-        self.assertTrue(self.meta.mfn().hasAttribute("mClass"))
-        self.assertEquals(self.meta.mfn().findPlug("mClass", False).asString(), self.meta.__class__.__name__)
-        self.assertTrue(self.meta.hasAttribute("root"))
-        self.assertTrue(self.meta.hasAttribute("uuid"))
-        self.assertTrue(self.meta.hasAttribute("metaParent"))
-        self.assertTrue(self.meta.hasAttribute("metaChildren"))
-        self.assertFalse(self.meta.findPlug("root", False).asBool())
+        self.assertTrue(self.meta.mfn().hasAttribute(base.MCLASS_ATTR_NAME))
+        self.assertEquals(self.meta.mfn().findPlug(base.MCLASS_ATTR_NAME, False).asString(), self.meta.__class__.__name__)
+        self.assertTrue(self.meta.hasAttribute(base.MPARENT_ATTR_NAME))
+        self.assertTrue(self.meta.hasAttribute(base.MCHILDREN_ATTR_NAME))
 
     def test_lockMetaManager(self):
         node = self.meta
@@ -31,9 +28,9 @@ class TestMetaData(mayatestutils.BaseMayaTest):
         self.assertTrue(node.mfn().isLocked)
 
     def test_renameAttribute(self):
-        self.meta.renameAttribute("mClass", "bob")
+        self.meta.renameAttribute(base.MCLASS_ATTR_NAME, "bob")
         self.assertTrue(self.meta.mfn().hasAttribute("bob"))
-        self.assertFalse(self.meta.mfn().hasAttribute("mClass"))
+        self.assertFalse(self.meta.mfn().hasAttribute(base.MCLASS_ATTR_NAME))
 
     def test_getAttribute(self):
         self.meta.addAttribute("test", 10.0, attrtypes.kMFnNumericDouble)
@@ -50,6 +47,7 @@ class TestMetaData(mayatestutils.BaseMayaTest):
         self.meta.delete()
 
     def testLock(self):
+        self.meta.lock(True)
         self.assertTrue(self.meta.mfn().isLocked)
         self.meta.lock(False)
         self.assertFalse(self.meta.mfn().isLocked)
@@ -59,39 +57,41 @@ class TestMetaData(mayatestutils.BaseMayaTest):
         self.assertEquals(self.meta.fullPathName(), "newName")
 
     def test_setattr(self):
-        self.meta.uuid = "testClass"
-        self.assertEquals(self.meta.uuid.asString(), "testClass")
+        self.meta.addAttribute("testAttr", "", attrtypes.kMFnDataString)
+        self.assertEquals(self.meta.testAttr.asString(), "")
+        self.meta.testAttr = "testClass"
+        self.assertEquals(self.meta.testAttr.asString(), "testClass")
         with self.assertRaises(TypeError):
-            self.meta.uuid = 10
+            self.meta.testAttr = 10
         child = base.MetaBase()
-        self.meta.metaParent = child
-        self.assertIsNotNone(child.metaParent())
-        self.assertIsNotNone(self.meta.metaChildren())
+        child.addParent(self.meta)
+        self.assertIsInstance(list(child.metaParents())[0], base.MetaBase)
+        self.assertIsInstance(list(self.meta.iterMetaChildren())[0], base.MetaBase)
 
     def test_addChild(self):
         newNode = nodes.createDagNode("test", "transform")
         newParent = base.MetaBase(newNode)
         self.meta.addChild(newParent)
-        self.assertEquals(len(self.meta.metaChildren()), 1)
-        self.assertEquals(self.meta.metaChildren()[0].mobject(), newParent.mobject())
+        self.assertEquals(len(list(self.meta.iterMetaChildren())), 1)
+        self.assertEquals(list(self.meta.iterMetaChildren())[0].mobject(), newParent.mobject())
 
     def test_addParent(self):
         newNode = nodes.createDagNode("test", "transform")
         newParent = base.MetaBase(newNode)
         self.meta.addParent(newParent)
-        self.assertEquals(self.meta.metaParent().mobject(), newParent.mobject())
+        self.assertEquals(list(self.meta.metaParents())[0].mobject(), newParent.mobject())
 
-    def test_removeChild(self):
+    def test_removeParent(self):
         newNode = nodes.createDagNode("test", "transform")
         newParent = base.MetaBase(newNode)
         self.meta.addParent(newParent)
-        self.assertEquals(len(newParent.metaChildren()), 1)
-        newParent.removeChild(self.meta)
-        self.assertEquals(len(newParent.metaChildren()), 0)
+        self.assertEquals(len(list(newParent.iterMetaChildren())), 1)
+        self.meta.removeParent(newParent)
+        self.assertEquals(len(list(newParent.iterMetaChildren())), 0)
         self.meta.addParent(newParent)
-        self.assertEquals(len(newParent.metaChildren()), 1)
-        newParent.removeChild(self.meta.mobject())
-        self.assertEquals(len(newParent.metaChildren()), 0)
+        self.assertEquals(len(list(newParent.iterMetaChildren())), 1)
+        self.meta.removeParent(newParent)
+        self.assertEquals(len(list(newParent.iterMetaChildren())), 0)
 
     def test_iterMetaChildren(self):
         childOne = base.MetaBase(nodes.createDagNode("child", "transform"))
@@ -120,17 +120,17 @@ class TestMetaData(mayatestutils.BaseMayaTest):
             child = base.MetaBase(nodes.createDGNode("child{}".format(i), "network"))
             parentMeta.addChild(child)
             children.append(child)
-        self.assertTrue(len(parentMeta.metaChildren()), len(children))
+        self.assertTrue(len(list(parentMeta.iterMetaChildren())), len(children))
 
         parent = parentMeta
         for child in children:
             child.removeParent()
             child.addParent(parent)
             parent = child
-        self.assertEquals(len([i for i in parentMeta.iterMetaChildren(depthLimit=1)]), 1)
+        self.assertEquals(len(list(parentMeta.iterMetaChildren(depthLimit=1))), 1)
         # we hit a depth limit
-        self.assertEquals(len([i for i in parentMeta.iterMetaChildren(depthLimit=100)]), 100)
-        self.assertEquals(len([i for i in parentMeta.iterMetaChildren(depthLimit=len(children) + 1)]),
+        self.assertEquals(len(list(parentMeta.iterMetaChildren(depthLimit=100))), 100)
+        self.assertEquals(len(list(parentMeta.iterMetaChildren(depthLimit=len(children) + 1))),
                           len(children))
 
     # def test_findPlugsByFilteredName(self):
