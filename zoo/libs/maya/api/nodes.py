@@ -483,7 +483,7 @@ def breadthFirstSearchDag(node, filter=None):
             yield t
 
 
-def getChildren(mObject, recursive=False, filter=(om2.MFn.kTransform, )):
+def getChildren(mObject, recursive=False, filter=(om2.MFn.kTransform,)):
     """This function finds and returns all children mobjects under the given transform, if recursive then including subchildren.
 
     :param mObject: om.MObject, the mObject of the transform to search under
@@ -712,10 +712,21 @@ def hasAttribute(node, name):
     return om2.MFnDependencyNode(node).hasAttribute(name)
 
 
-def setMatrix(mobject, matrix):
+def setMatrix(mobject, matrix, space=om2.MSpace.kTransform):
+    """Sets the objects matrix using om2.MTransform.
+
+    :param mobject: The transform Mobject to modify
+    :type mobject: :class:`om2.MSpace.kWorld`
+    :param matrix: The maya MMatrix to set
+    :type matrix: :class:`om2.MMatrix`
+    :param space: The coordinate space to set the matrix by
+    """
     dag = om2.MFnDagNode(mobject)
-    trans = om2.MFnTransform(dag.getPath())
-    trans.setTransformation(om2.MTransformationMatrix(matrix))
+    transform = om2.MFnTransform(dag.getPath())
+    tMtx = om2.MTransformationMatrix(matrix)
+    transform.setTranslation(tMtx.translation(space), space)
+    transform.setRotation(tMtx.rotation(asQuaternion=True), space)
+    transform.setScale(tMtx.scale(space))
 
 
 def setTranslation(obj, position, space=None):
@@ -908,6 +919,10 @@ def addAttribute(node, longName, shortName, attrType=attrtypes.kMFnNumericDouble
         # double angle
         attrMobj = addAttribute(myNode, "myAngle", "myAngle", attrType=attrtypes.kMFnUnitAttributeAngle,
                                  keyable=True, channelBox=False)
+        # double angle
+        attrMobj = addAttribute(myNode, "myEnum", "myEnum", attrType=attrtypes.kMFnkEnumAttribute,
+                                 keyable=True, channelBox=True, fields=["one", "two", "three"])
+
 
     """
     if hasAttribute(node, longName):
@@ -944,6 +959,10 @@ def addAttribute(node, longName, shortName, attrType=attrtypes.kMFnNumericDouble
     elif attrType == attrtypes.kMFnkEnumAttribute:
         attr = om2.MFnEnumAttribute()
         aobj = attr.create(longName, shortName)
+        fields = kwargs.get("fields")
+        if fields is not None:
+            for index in xrange(len(fields)):
+                attr.addField(fields[index], index)
     elif attrType == attrtypes.kMFnCompoundAttribute:
         attr = om2.MFnCompoundAttribute()
         aobj = attr.create(longName, shortName)

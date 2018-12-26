@@ -33,7 +33,9 @@ class Shelf(object):
                       overlayLabelBackColor=self.labelBackground,
                       style=style,
                       overlayLabelColor=self.labelColour,
-                      sourceType=Type)
+                      sourceType=Type,
+                      scaleIcon=True,
+                      statusBarMessage=tooltip)
         if style is not "iconOnly":
             kwargs["imageOverlayLabel"] = label
         return cmds.shelfButton(**kwargs)

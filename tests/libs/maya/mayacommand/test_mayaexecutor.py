@@ -10,8 +10,7 @@ class TestMayaCommandExecutor(mayatestutils.BaseMayaTest):
     @classmethod
     def setUpClass(cls):
         super(TestMayaCommandExecutor, cls).setUpClass()
-        os.environ["TESTDATA"] = "tests.testdata.mayacommanddata.testmayacommand;tests.testdata.commanddata" \
-                                 ".testcommands"
+        os.environ["TESTDATA"] = "tests.testdata.mayacommanddata.testmayacommand;tests.testdata.commanddata.testcommands"
 
     def setUp(self):
         self.executor = executor.Executor()

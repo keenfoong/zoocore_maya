@@ -530,3 +530,33 @@ def createPlusMinusAverage3D(name, inputs, output=None, operation=1):
                 continue
             plugs.connectPlugs(ouPlug, out)
     return pma
+
+
+def createControllerTag(node, name, parent=None, visibilityPlug=None):
+    """Create a maya kControllerTag and connects it up to the 'node'.
+
+    :param node: The Dag node MObject to tag
+    :type node: om2.MObject
+    :param name: The name for the kControllerTag
+    :type name: str
+    :param parent: The Parent kControllerTag mObject or None
+    :type parent: om2.MObject or None
+    :param visibilityPlug: The Upstream Plug to connect to the visibility mode Plug
+    :type visibilityPlug: om2.MPlug or None
+    :return: The newly created kController node as a MObject
+    :rtype: om.MObject
+    """
+    ctrl = nodes.createDGNode(name, "controller")
+    fn = om2.MFnDependencyNode(ctrl)
+
+    plugs.connectPlugs(om2.MFnDependencyNode(node).findPlug("message", False),
+                       fn.findPlug("controllerObject", False))
+    if visibilityPlug is not None:
+        plugs.connectPlugs(visibilityPlug, fn.findPlug("visibilityMode", False))
+    if parent is not None:
+        parentFn = om2.MFnDependencyNode(parent)
+        plugs.connectPlugs(fn.findPlug("parent", False),
+                           plugs.nextAvailableDestElementPlug(parentFn.findPlug("children", False)))
+        plugs.connectPlugs(parentFn.findPlug("prepopulate", False),
+                           fn.findPlug("prepopulate", False))
+    return ctrl
