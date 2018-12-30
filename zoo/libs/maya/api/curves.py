@@ -52,8 +52,9 @@ def createCurveShape(parent, data):
     :type parent: MObject
     :param data: {"shapeName": {"cvs": [], "knots":[], "degree": int, "form": int, "matrix": []}}
     :type data: dict
-    :return: the parent node
-    :rtype: MObject
+    :return: A 2 tuple the first element is the MObject of the parent and the second is a list /
+    of mobjects represents the shapes created.
+    :rtype: tuple(MObject, list(MObject))
     """
     parentInverseMatrix = om2.MMatrix()
     if parent is None:
@@ -62,6 +63,7 @@ def createCurveShape(parent, data):
         parentInverseMatrix = nodes.getWorldInverseMatrix(parent)
 
     newCurve = om2.MFnNurbsCurve()
+    newShapes = []
     for shapeName, curveData in iter(data.items()):
         cvs = om2.MPointArray(curveData["cvs"])  # om2 allows a list of lists which converts to om2.Point per element
         knots = curveData["knots"]
@@ -74,6 +76,7 @@ def createCurveShape(parent, data):
             for i in range(len(cvs)):
                 cvs[i] *= mat * parentInverseMatrix
         shape = newCurve.create(cvs, knots, degree, form, False, False, parent)
+        newShapes.append(shape)
         if parent == om2.MObject.kNullObj and shape.apiType() == om2.MFn.kTransform:
             parent = shape
         if enabled:
@@ -82,7 +85,7 @@ def createCurveShape(parent, data):
             colours = curveData["overrideColorRGB"]
             outlinerColour = curveData.get("outlinerColor")
             nodes.setNodeColour(newCurve.object(), colours, outlinerColour=outlinerColour)
-    return parent
+    return parent, newShapes
 
 
 def createCurveFromPoints(name, points, shapeDict=shapeInfo, parent=None):

@@ -31,8 +31,9 @@ def loadFromLib(shapeName, parent=None):
     :type shapeName: str
     :param parent: if specified then this function will also create the shapes under the parent
     :type parent: MObject
-    :return: Returns the data from the library or the MObject of the parent
-    :rtype: dict or MObject
+    :return: A 2 tuple the first element is the MObject of the parent and the second is a list /
+    of mobjects represents the shapes created
+    :rtype: tuple(MObject, list(MObject))
     :raises: ValueError
     """
     lib = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__))))
@@ -44,8 +45,6 @@ def loadFromLib(shapeName, parent=None):
             data = filesystem.loadJson(os.path.join(os.path.normpath(lib), f))
             if parent is not None and data:
                 return curves.createCurveShape(parent, data)
-            if data:
-                return data
     raise ValueError("The shape name '{}' doesn't exist in the library".format(shapeName))
 
 
@@ -56,8 +55,9 @@ def loadAndCreateFromLib(shapeName, parent=None):
     :type shapeName: str
     :param parent: the parent for the nurbscurve default is None.
     :type parent: om2.MObject
-    :return: the create transform for the nurbscurve.
-    :rtype: om2.MObject
+    :return: A 2 tuple the first element is the MObject of the parent and the second is a list /
+    of mobjects represents the shapes created
+    :rtype: tuple(MObject, list(MObject))
     """
     newData = loadFromLib(shapeName, parent)
     if parent is None:

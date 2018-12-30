@@ -459,14 +459,15 @@ def iterChildren(mObject, recursive=False, filter=None):
     :type filter: tuple or None
     :return: om.MObject
     """
-    dagNode = om2.MFnDagNode(mObject)
+    dagNode = om2.MDagPath.getAPathTo(mObject)
     childCount = dagNode.childCount()
     if not childCount:
         return
+    filter = filter or ()
 
     for index in xrange(childCount):
         childObj = dagNode.child(index)
-        if filter or childObj.apiType() in filter:
+        if not filter or childObj.apiType() in filter:
             yield childObj
             if recursive:
                 for x in iterChildren(childObj, recursive, filter):
@@ -1038,7 +1039,7 @@ def addAttribute(node, longName, shortName, attrType=attrtypes.kMFnNumericDouble
         aobj = attr.create(longName, shortName, om2.MFnNumericData.k3Double)
     elif attrType == attrtypes.kMFnNumeric3Float:
         attr = om2.MFnNumericAttribute()
-        aobj = attr.create(longName, shortName, om2.MFnNumericData.k3Float)
+        aobj = attr.createPoint(longName, shortName)
     elif attrType == attrtypes.kMFnNumeric3Int:
         attr = om2.MFnNumericAttribute()
         aobj = attr.create(longName, shortName, om2.MFnNumericData.k3Int)

@@ -1,3 +1,4 @@
+import copy
 import re
 from maya.api import OpenMaya as om2
 from zoo.libs.maya.api import attrtypes
@@ -791,20 +792,41 @@ def setPlugInfoFromDict(plug, **kwargs):
         setPlugInfoFromDict(somePlug, **data)
 
     """
-    children = kwargs.get("children")
-    # in the case we have child and just to ensure we dont crash we check to make sure the requested plug is
-    # a compound.
-    if children and plug.isCompound:
+    children = kwargs.get("children", [])
+    # just to ensure we dont crash we check to make sure the requested plug is a compound.
+    if plug.isCompound:
         # cache the childCount
         childCount = plug.numChildren()
-        # now iterate the children data which contains a dict which is in the format
-        for i, childInfo in enumerate(children):
-            # it's possible that no data was passed for this child so skip
-            if not childInfo:
-                continue
-            # ensure the child index exists
-            if i in range(childCount):
-                setPlugInfoFromDict(plug.child(i), **childInfo)
+        if not children:
+            #not a huge fan of doing a deepcopy just to deal with modifying the value/default further down
+            children = [copy.deepcopy(kwargs) for i in xrange(childCount)]
+
+            # now iterate the children data which contains a dict which is in the format
+            for i, childInfo in enumerate(children):
+                # it's possible that no data was passed for this child so skip
+                if not childInfo:
+                    continue
+                # ensure the child index exists
+                if i in range(childCount):
+                    # modify the value and default value if we passed one in, this is done because the
+                    # children would support a single value over and compound i.e kNumeric3Float
+                    value = childInfo.get("value")
+                    defaultValue = childInfo.get("default")
+                    if value is not None and i in range(len(value)):
+                        childInfo["value"] = value[i]
+                    if defaultValue is not None and i in range(len(defaultValue)):
+                        childInfo["default"] = defaultValue[i]
+                    setPlugInfoFromDict(plug.child(i), **childInfo)
+        else:
+            # now iterate the children data which contains a dict which is in the format
+            for i, childInfo in enumerate(children):
+                # it's possible that no data was passed for this child so skip
+                if not childInfo:
+                    continue
+                # ensure the child index exists
+                if i in range(childCount):
+                    setPlugInfoFromDict(plug.child(i), **childInfo)
+
     default = kwargs.get("default")
     min = kwargs.get("min")
     max = kwargs.get("max")
@@ -812,6 +834,7 @@ def setPlugInfoFromDict(plug, **kwargs):
     softMax = kwargs.get("softMax")
     value = kwargs.get("value")
     Type = kwargs.get("Type")
+    # certain data types require casting i.e MDistance
     if default is not None and Type is not None:
         if Type == attrtypes.kMFnDataString:
             default = om2.MFnStringData().create(default)

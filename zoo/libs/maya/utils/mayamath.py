@@ -21,13 +21,12 @@ def aimToNode(source, target, aimVector=None,
     eyeAim = aimVector or om2.MVector(1.0, 0.0, 0.0)
     eyeUp = upVector or om2.MVector(0.0, 1.0, 0.0)
 
-    targetDag = om2.MFnDagNode(target).getPath()
-    eyeDag = om2.MFnDagNode(source).getPath()
-
+    targetDag = om2.MDagPath.getAPathTo(target)
+    eyeDag = om2.MDagPath.getAPathTo(source)
     transformFn = om2.MFnTransform(eyeDag)
     eyePivotPos = transformFn.rotatePivot(om2.MSpace.kWorld)
 
-    transformFn.setObject(targetDag)
+    transformFn = om2.MFnTransform(targetDag)
     targetPivotPos = transformFn.rotatePivot(om2.MSpace.kWorld)
 
     aimVector = targetPivotPos - eyePivotPos
