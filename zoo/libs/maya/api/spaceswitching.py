@@ -52,18 +52,25 @@ def iterTargetsFromConstraint(constraint):
     fn = om2.MFnDependencyNode(constraint)
     targetArray = fn.findPlug("target", False)
     visited = []
+    # to safe guard the possible situation where the first child plug(parentInverseMatrix) isn't connected
+    # we iterate through the child plugs to find the first connected plug.
     for tElementIndex in targetArray.getExistingArrayAttributeIndices():
         targetElement = targetArray.elementByLogicalIndex(tElementIndex)
         for i in xrange(targetElement.numChildren()):
             childPlug = targetElement.child(i)
             source = childPlug.source()
+            # if the plug is not connected to a source skip!
             if not source:
                 continue
-
+            # strange scenario where the source plugs node isn't valid?
             sNode = source.node()
+            # make sure we haven't seen this node before just in case
+            # the user did random connections manually.
             if not sNode.isNull() and sNode not in visited:
                 visited.append(sNode)
                 yield sNode
+                # we only want the first incoming connection so lets
+                # go straight back up to the next target array element
                 break
 
 
