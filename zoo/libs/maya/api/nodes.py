@@ -64,7 +64,7 @@ def nameFromMObject(mobject, partialName=False, includeNamespace=True):
     return name
 
 
-def toApiObject(node):
+def toApiMFnSet(node):
     """
     Returns the appropriate mObject from the api 2.0
 
@@ -73,12 +73,15 @@ def toApiObject(node):
     :return: MFnDagNode, MPlug, MFnDependencyNode
     :rtype: MPlug or MFnDag or MFnDependencyNode
 
-    Example::
-        >>>from zoo.libs.maya.api import nodes
-        >>>node = cmds.polyCube()[0] # str
-        >>>nodes.toApiObject(node) # MFnDagNode
-        >>>node = cmds.createNode("multiplyDivide")
-        >>>nodes.toApiObject(node) # MFnDependencyNode
+    .. code-block:: python
+
+        from zoo.libs.maya.api import nodes
+        node = cmds.polyCube()[0] # str
+        nodes.toApiObject(node)
+        # Result MFnDagNode
+        node = cmds.createNode("multiplyDivide")
+        nodes.toApiObject(node)
+        # Result MFnDependencyNode
     """
     if isinstance(node, om2.MObjectHandle):
         node = node.object()
@@ -1053,8 +1056,9 @@ def addAttribute(node, longName, shortName, attrType=attrtypes.kMFnNumericDouble
         attr = om2.MFnNumericAttribute()
         aobj = attr.create(longName, shortName, om2.MFnNumericData.k4Double)
 
+    attr.array = isArray
     if aobj is not None and apply:
-        attr.array = isArray
+
         mod = om2.MDGModifier()
         mod.addAttribute(node, aobj)
         mod.doIt()
