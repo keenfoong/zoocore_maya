@@ -118,7 +118,7 @@ def buildConstraint(source, targets, maintainOffset=False,
     # make sure we support the constrainttype the user wants
     assert constraintType in APITOCMDS_CONSTRAINT_MAP, "No Constraint of type: {}, supported".format(constraintType)
 
-    spaceNode = targets["spaceNode"]
+    spaceNode = targets.get("spaceNode")
     attrName = targets.get("attributeName", "parent")
     targetInfo = targets["targets"]
     targetLabels, targetNodes = zip(*targetInfo)
@@ -133,7 +133,7 @@ def buildConstraint(source, targets, maintainOffset=False,
         targetList = [t for t in targetNodes if t not in existingTargets]
         # in the case that all target already exist just early out
         if not targetList:
-            return
+            return None, []
 
     # create the constraint
     cmdsFunc = getattr(cmds, APITOCMDS_CONSTRAINT_MAP.get(constraintType))
@@ -144,7 +144,7 @@ def buildConstraint(source, targets, maintainOffset=False,
     # and just return the constraint
     constraintMObject = nodes.asMObject(constraint)
     if spaceNode is None:
-        return constraintMObject
+        return constraintMObject, []
 
     spaceFn = om2.MFnDependencyNode(spaceNode)
     if spaceFn.hasAttribute(attrName):
