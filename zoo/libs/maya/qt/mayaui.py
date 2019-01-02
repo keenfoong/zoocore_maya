@@ -64,7 +64,7 @@ def getMayaWindowName():
 def toQtObject(mayaName, widgetType=QtWidgets.QWidget):
     """Convert a Maya ui path to a Qt object.
 
-    :param mayaName: Maya UI Path to convert, "scriptEditorPanel1Window|TearOffPane|scriptEditorPanel1|testButton"
+    :param mayaName: Maya UI Path to convert eg. "scriptEditorPanel1Window|TearOffPane|scriptEditorPanel1|testButton"
     :return: PyQt representation of that object
     """
     ptr = apiUI.MQtUtil.findControl(mayaName)
@@ -72,7 +72,8 @@ def toQtObject(mayaName, widgetType=QtWidgets.QWidget):
         ptr = apiUI.MQtUtil.findLayout(mayaName)
     if ptr is None:
         ptr = apiUI.MQtUtil.findMenuItem(mayaName)
-
+    if ptr is None:
+        ptr = apiUI.MQtUtil.findMenuItem(mayaName)
     if ptr is not None:
         return wrapinstance(long(ptr), widgetType)
 
@@ -80,12 +81,14 @@ def toQtObject(mayaName, widgetType=QtWidgets.QWidget):
 def getOutliners():
     return [toQtObject(i) for i in cmds.getPanel(typ="outlinerPanel")]
 
+
 def applyScriptEditorHistorySyntax(sourceType, highlighter=None, **kwargs):
     se_edit, seRepo = highlighterEditorWidget(sourceType, **kwargs)
     se_edit.setVisible(False)
     if highlighter is None:
         highlighter = se_edit.findChild(QtGui.QSyntaxHighlighter)
     highlighter.setDocument(seRepo.document())
+
 
 def highlighterEditorWidget(sourceType, **kwargs):
     se_repo = toQtObject('cmdScrollFieldReporter1', widgetType=QtWidgets.QTextEdit)
@@ -252,12 +255,16 @@ class BootStrapWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
             cmds.workspaceControlState(name, remove=True)
         kwargs["retain"] = False
         # create the ui script which launches the custom widget, autodesk decided that string are god eeekkkkk!
-        kwargs["uiScript"] = "try: import zoo.libs.maya.qt.mayaui as zoomayaui;zoomayaui.rebuild({})\nexcept ImportError: pass".format(self.objectName())
+        kwargs[
+            "uiScript"] = "try: import zoo.libs.maya.qt.mayaui as zoomayaui;zoomayaui.rebuild({})\nexcept ImportError: pass".format(
+            self.objectName())
         # create the close callback string autodesk wacky design decisions again
-        kwargs["closeCallback"] = 'try: import zoo.libs.maya.qt.mayaui as zoomayaui;zoomayaui.bootstrapDestroyWindow("{}")\nexcept ImportError: pass'.format(self.objectName())
+        kwargs[
+            "closeCallback"] = 'try: import zoo.libs.maya.qt.mayaui as zoomayaui;zoomayaui.bootstrapDestroyWindow("{}")\nexcept ImportError: pass'.format(
+            self.objectName())
         super(BootStrapWidget, self).show(**kwargs)
 
-        #self.dockableShow(**kwargs)
+        # self.dockableShow(**kwargs)
 
     def dockableShow(self, *args, **kwargs):
         """ Copied from mayaMixin.MayaQWidgetDockableMixin().show() so we can tweak the docking settings.
@@ -272,7 +279,7 @@ class BootStrapWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
 
         # Handle the standard setVisible() operation of show()
         QtWidgets.QWidget.setVisible(self,
-                           True)  # NOTE: Explicitly calling QWidget.setVisible() as using super() breaks in PySide: super(self.__class__, self).show()
+                                     True)  # NOTE: Explicitly calling QWidget.setVisible() as using super() breaks in PySide: super(self.__class__, self).show()
 
         # Handle special case if the parent is a QDockWidget (dockControl)
         parent = self.parent()
@@ -291,6 +298,3 @@ class BootStrapWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
                         ptr = apiUI.MQtUtil.getCurrentParent()
                         mw = wrapinstance(long(ptr), QtWidgets.QMainWindow)
                         mw.show()
-
-
-
