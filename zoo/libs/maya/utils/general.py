@@ -20,16 +20,20 @@ def mayaUpVector():
 
 
 def upAxis():
+    """Returns the current world up axis in str form.
+
+    :return: returns x,y or z
+    :rtype: str
+    """
     if isYAxisUp():
         return "y"
     elif isZAxisUp():
         return "z"
-    elif isXAxisUp():
-        return "x"
+    return "x"
 
 
 def isYAxisUp():
-    """returns True if y is world up
+    """Returns True if y is world up
 
     :return: bool
     """
@@ -37,7 +41,7 @@ def isYAxisUp():
 
 
 def isZAxisUp():
-    """returns True if Z is world up
+    """Returns True if Z is world up
 
     :return: bool
     """
@@ -45,11 +49,11 @@ def isZAxisUp():
 
 
 def isXAxisUp():
-    """returns True if x is world up
+    """Returns True if x is world up
 
     :return: bool
     """
-    return True if not isYAxisUp() and not isZAxisUp() else False
+    return not isYAxisUp() and not isZAxisUp()
 
 
 def loadPlugin(pluginPath):

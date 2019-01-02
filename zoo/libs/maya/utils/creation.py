@@ -35,7 +35,8 @@ def distanceBetween(firstNode, secondNode, name):
 
 
 def multiplyDivide(input1, input2, operation, name):
-    """
+    """Creates a multiply divide node with the given and setups the input connections.
+
     List of operations::
 
         no operation = 0,
@@ -70,6 +71,22 @@ def multiplyDivide(input1, input2, operation, name):
 
 
 def blendColors(color1, color2, name, blender):
+    """Creates a blend colors node.
+
+    :param color1: If the type is a MPlug then the color1 plug on the new node\
+    will be connected the given plug.
+    :type color1: om2.MColor or om2.MPlug
+    :param color2: If the type is a MPlug then the color2 plug on the new node\
+    will be connected the given plug.
+    :type color2: om2.MColor or om2.MPlug
+    :param name: The new floatMath node name.
+    :type name: str
+    :param blender: If the type is a MPlug then the blender plug on the new node\
+    will be connected the given plug.
+    :type blender: float or om2.MPlug
+    :return: The new colorBlend node as a MObject
+    :rtype: om2.MObject
+    """
     blendFn = om2.MFnDependencyNode(nodes.createDGNode(name, "blendColors"))
     if isinstance(color1, om2.MPlug):
         plugs.connectPlugs(color1, blendFn.findPlug("color1", False))
@@ -87,6 +104,21 @@ def blendColors(color1, color2, name, blender):
 
 
 def floatMath(floatA, floatB, operation, name):
+    """Creates a floatMath node from the lookdev kit builtin plugin
+
+    :param floatA: If the type is a MPlug then the floatA plug on the new node\
+    will be connected the given plug.
+    :type floatA: float or om2.MPlug
+    :param floatB: If the type is a MPlug then the floatB plug on the new node\
+    will be connected the given plug.
+    :type floatB: float or om2.MPlug
+    :param operation: The operation attributes value
+    :type operation: int
+    :param name: The new floatMath node name.
+    :type name: str
+    :return: The floatMath node MObject
+    :rtype: om2.MObject
+    """
     floatMathFn = om2.MFnDependencyNode(nodes.createDGNode(name, "floatMath"))
     if isinstance(floatA, om2.MPlug):
         plugs.connectPlugs(floatA, floatMathFn.findPlug("floatA", False))
@@ -240,8 +272,10 @@ def createMultMatrix(name, inputs, output):
 def createDecompose(name, destination, translateValues, scaleValues, rotationValues, inputMatrixPlug=None):
     """Creates a decompose node and connects it to the destination node.
 
-    :param inputMatrixPlug: The input matrix plug to connect from.
-    :type inputMatrixPlug: om2.MPlug
+    :param name: the decompose Matrix name.
+    :type name: str
+    :param destination: the node to connect to
+    :type destination: om2.MObject
     :param translateValues: the x,y,z to apply must have all three if all three are true then the compound will be \
     connected.
     :type translateValues: list(str)
@@ -251,8 +285,8 @@ def createDecompose(name, destination, translateValues, scaleValues, rotationVal
     :param rotationValues: the x,y,z to apply must have all three if all three are true then the compound will be \
     connected.
     :type rotationValues: list(str)
-    :param destination: the node to connect to
-    :type destination: om2.MObject
+    :param inputMatrixPlug: The input matrix plug to connect from.
+    :type inputMatrixPlug: om2.MPlug
     :return: the decompose node
     :rtype: om2.MObject
     """
@@ -272,7 +306,7 @@ def createDecompose(name, destination, translateValues, scaleValues, rotationVal
 
 
 def createReverse(name, inputs, outputs):
-    """
+    """ Create a Reverse Node
 
     :param name: The name for the reverse node to have, must be unique
     :type name: str
@@ -318,9 +352,15 @@ def createReverse(name, inputs, outputs):
 
 
 def createSetRange(name, value, min_, max_, oldMin, oldMax, outValue=None):
-    """ Generates and connects a setRange node, input/output arguments take an iterable, possibles values are om2.MPlug,
-    float or None , if a value is None it will be skipped this is useful when two or of three you want connected or set
-    to a value but the other is left to the default state. If MPlug is passed and its a compound it'll be connected.
+    """ Generates and connects a setRange node.
+
+    input/output arguments take an iterable, possibles values are om2.MPlug,
+     float or None.
+
+    if a value is None it will be skipped this is useful when you want
+    some not connected or set to a value but the other is left to the
+    default state.
+    If MPlug is passed and its a compound it'll be connected.
 
     :param name: the new name for the set Range node
     :type name: str
@@ -375,7 +415,7 @@ def createSetRange(name, value, min_, max_, oldMin, oldMax, outValue=None):
         for index, inner in enumerate(source):
             if inner is None:
                 continue
-            if isinstance(inner, om2.MPlug):
+            elif isinstance(inner, om2.MPlug):
                 if inner.isCompound:
                     plugs.connectPlugs(inner, destination)
                     break
@@ -405,12 +445,14 @@ def createSetRange(name, value, min_, max_, oldMin, oldMax, outValue=None):
 
 
 def createPlusMinusAverage1D(name, inputs, output=None, operation=1):
-    """
+    """ Create's a plusMinusAverage node and connects the 1D inputs and outputs.
+
     :param name: the plus minus average node name
     :type name: str
-    :param inputs:
+    :param inputs: tuple of MPlugs and/or float values, each value will be applied to /
+    a new Input1D element. If the value is MPlug then it will be connected
     :type inputs: iterable(plug or float)
-    :param output:
+    :param output: A tuple of downstream MPlugs to connect to.
     :type output: iterable(plug)
     :return: The plus minus average MObject
     :rtype: om2.MObject
@@ -452,12 +494,14 @@ def createPlusMinusAverage1D(name, inputs, output=None, operation=1):
 
 
 def createPlusMinusAverage2D(name, inputs, output=None, operation=1):
-    """
+    """ Create's a plusMinusAverage node and connects the 2D inputs and outputs.
+
     :param name: the plus minus average node name
     :type name: str
-    :param inputs:
+    :param inputs: tuple of MPlugs and/or float values, each value will be applied to /
+    a new Input2D element. If the value is MPlug then it will be connected
     :type inputs: iterable(plug or float)
-    :param output:
+    :param output: A tuple of downstream MPlugs to connect to.
     :type output: iterable(plug)
     :return: The plus minus average MObject
     :rtype: om2.MObject
@@ -485,14 +529,16 @@ def createPlusMinusAverage2D(name, inputs, output=None, operation=1):
 
 
 def createPlusMinusAverage3D(name, inputs, output=None, operation=1):
-    """
-    :param name: the plus minus average node name
+    """ Create's a plusMinusAverage node and connects the 3D inputs and outputs.
+
+    :param name: the plus minus average node name.
     :type name: str
-    :param inputs:
+    :param inputs: tuple of MPlugs and/or float values, each value will be applied to /
+    a new Input3D element. If the value is MPlug then it will be connected.
     :type inputs: iterable(plug or float)
-    :param output:
-    :type output: iterable(plug)
-    :return: The plus minus average MObject
+    :param output: A tuple of downstream MPlugs to connect to.
+    :type output: iterable(plug) or None
+    :return: The plus minus average MObject.
     :rtype: om2.MObject
 
     .. code-block:: python
