@@ -108,16 +108,3 @@ class CreateNodeTypeAmount(command.ZooCommand):
             self._modifier.undoIt()
 ```
 
-
-TODO
-----
-Most todo will be within the code base however any globals will be here.
-
-- [ ] Update the unittests runner since we ported from zoocore repo.
-- [ ] Get Sphinx documentation up and running for maya.
-- [ ] Document how to install and run zoocore_maya which currently use a private repo.
-- [ ] Update unitests, since we're lacking a fair amount.
-- [ ] More Docstrings :D.
-- [ ] Code Examples other than function level examples.
-
-
