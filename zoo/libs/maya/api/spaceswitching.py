@@ -16,7 +16,9 @@ from maya import cmds
 # constant mapping between maya api constraint types and maya cmds string types
 APITOCMDS_CONSTRAINT_MAP = {om2.MFn.kParentConstraint: {"type": 'parentConstraint', "targetPlugIndex": 1},
                             om2.MFn.kPointConstraint: {"type": 'pointConstraint', "targetPlugIndex": 4},
-                            om2.MFn.kOrientConstraint: {"type": 'orientConstraint', "targetPlugIndex": 4}}
+                            om2.MFn.kOrientConstraint: {"type": 'orientConstraint', "targetPlugIndex": 4},
+                            om2.MFn.kScaleConstraint: {"type": "scaleConstraint", "targetPlugIndex": 2},
+                            om2.MFn.kAimConstraint: {"type": "scaleConstraint", "targetPlugIndex": 4}}
 
 
 def findConstraint(node, kType, includeReferenced=True):
@@ -140,7 +142,6 @@ def buildConstraint(source, targets, maintainOffset=False,
     cmdsFunc = getattr(cmds, constraintMap["type"])
     arguments = {"maintainOffset": maintainOffset}
     arguments.update(kwargs)
-    print arguments
     constraint = cmdsFunc(map(nodes.nameFromMObject, targetList), nodes.nameFromMObject(source),
                           **arguments)[0]
     # if we have been provided a spaceNode, which will contain our switch, otherwise ignore the setup of a switch
