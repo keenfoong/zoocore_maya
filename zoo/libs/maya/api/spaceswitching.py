@@ -14,9 +14,9 @@ from maya.api import OpenMaya as om2
 from maya import cmds
 
 # constant mapping between maya api constraint types and maya cmds string types
-APITOCMDS_CONSTRAINT_MAP = {om2.MFn.kParentConstraint: 'parentConstraint',
-                            om2.MFn.kPointConstraint: 'pointConstraint',
-                            om2.MFn.kOrientConstraint: 'orientConstraint'}
+APITOCMDS_CONSTRAINT_MAP = {om2.MFn.kParentConstraint: {"type": 'parentConstraint', "targetPlugIndex": 1},
+                            om2.MFn.kPointConstraint: {"type": 'pointConstraint', "targetPlugIndex": 4},
+                            om2.MFn.kOrientConstraint: {"type": 'orientConstraint', "targetPlugIndex": 4}}
 
 
 def findConstraint(node, kType, includeReferenced=True):
@@ -102,11 +102,11 @@ def buildConstraint(source, targets, maintainOffset=False,
         spaceNode =nodes.createDagNode("control", "locator")
         drivenNode = nodes.createDagNode("driven", "locator")
         spaces = {"spaceNode": spaceNode,
-                    "attrName": "parentSpace", "targets": targets}
+                    "attributeName": "parentSpace", "targets": targets}
         constraint, conditions = build(drivenNode, targets=spaces)
 
         # lets add to the existing system
-        spaces = {"spaceNode": spaceNode, "attrName": "parentSpace", "targets": (
+        spaces = {"spaceNode": spaceNode, "attributeName": "parentSpace", "targets": (
                  ("locator8", nodes.createDagNode("locator8", "locator")),)}
 
         constraint, conditions = build(drivenNode, targets=spaces)
@@ -136,10 +136,13 @@ def buildConstraint(source, targets, maintainOffset=False,
             return None, []
 
     # create the constraint
-    cmdsFunc = getattr(cmds, APITOCMDS_CONSTRAINT_MAP.get(constraintType))
-
+    constraintMap = APITOCMDS_CONSTRAINT_MAP[constraintType]
+    cmdsFunc = getattr(cmds, constraintMap["type"])
+    arguments = {"maintainOffset": maintainOffset}
+    arguments.update(kwargs)
+    print arguments
     constraint = cmdsFunc(map(nodes.nameFromMObject, targetList), nodes.nameFromMObject(source),
-                          maintainOffset=maintainOffset, **kwargs)[0]
+                          **arguments)[0]
     # if we have been provided a spaceNode, which will contain our switch, otherwise ignore the setup of a switch
     # and just return the constraint
     constraintMObject = nodes.asMObject(constraint)
@@ -167,10 +170,11 @@ def buildConstraint(source, targets, maintainOffset=False,
     targetArray = constraintFn.findPlug("target", False)
     sourceShortName = nodes.nameFromMObject(source, partialName=True, includeNamespace=False)
     conditions = []
+    constraintTargetWeightIndex = constraintMap["targetPlugIndex"]
     # first iterate over the target array on the constraint
     for index in targetArray.getExistingArrayAttributeIndices():
         targetElement = targetArray.elementByLogicalIndex(index)
-        targetElementWeight = targetElement.child(1)
+        targetElementWeight = targetElement.child(constraintTargetWeightIndex)
         targetWeightSource = targetElementWeight.source()
         # just in case the target weight plug is disconnected
         if targetWeightSource is None:
@@ -185,7 +189,7 @@ def buildConstraint(source, targets, maintainOffset=False,
                 if upstreamWeight and upstreamWeight.node().apiType() == om2.MFn.kCondition:
                     continue
             else:
-                if weightSourceNode == om2.MFn.kCondition:
+                if weightSourceNode.apiType() == om2.MFn.kCondition:
                     continue
         targetNode = targetElement.child(0).source().node()
         targetShortName = nodes.nameFromMObject(targetNode, partialName=True, includeNamespace=False)
