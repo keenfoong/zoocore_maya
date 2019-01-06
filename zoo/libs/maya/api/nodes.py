@@ -116,16 +116,16 @@ def setNodeColour(node, colour, outlinerColour=None):
     plug = dependNode.findPlug("overrideColorRGB", False)
     enabledPlug = dependNode.findPlug("overrideEnabled", False)
     overrideRGBColors = dependNode.findPlug("overrideRGBColors", False)
-    if not plugs.getPlugValue(enabledPlug):
-        plugs.setPlugValue(enabledPlug, True)
-    if not plugs.getPlugValue(overrideRGBColors):
-        plugs.setPlugValue(dependNode.findPlug("overrideRGBColors", False), True)
+    if not enabledPlug.asBool():
+        enabledPlug.setBool(True)
+    if not overrideRGBColors.asBool():
+        dependNode.findPlug("overrideRGBColors", False).setBool(True)
     plugs.setPlugValue(plug, colour)
     # deal with the outliner
     if outlinerColour:
         useOutliner = dependNode.findPlug("useOutlinerColor", False)
-        if plugs.getPlugValue(useOutliner):
-            plugs.setPlugValue(useOutliner, True)
+        if useOutliner.asBool():
+            useOutliner.setBool(True)
         plugs.setPlugValue(dependNode.findPlug("outlinerColor", False), outlinerColour)
 
 
