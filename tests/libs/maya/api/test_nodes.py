@@ -17,12 +17,12 @@ class TestNodes(mayatestutils.BaseMayaTest):
         self.assertTrue(nodes.isValidMDagPath(obj))
 
     def test_toApiObjectReturnsDagNode(self):
-        obj = nodes.toApiObject(self.node)
+        obj = nodes.toApiMFnSet(self.node)
         self.assertIsInstance(obj, om.MFnDagNode)
 
     def test_toApiObjectReturnsDependNode(self):
         node = cmds.createNode("multiplyDivide")
-        self.assertIsInstance(nodes.toApiObject(node), om.MFnDependencyNode)
+        self.assertIsInstance(nodes.toApiMFnSet(node), om.MFnDependencyNode)
 
     def test_asMObject(self):
         self.assertIsInstance(nodes.asMObject(self.node), om.MObject)
@@ -119,7 +119,7 @@ class TestNodes(mayatestutils.BaseMayaTest):
         self.assertEquals(nodes.nameFromMObject(nodes.asMObject(self.node), partialName=True), "transform1")
 
     def test_parentPath(self):
-        group = nodes.toApiObject(cmds.createNode("transform"))
+        group = nodes.toApiMFnSet(cmds.createNode("transform"))
         self.assertIsNone(nodes.parentPath(group.getPath()))
         cmds.group(nodes.nameFromMObject(group.object()))
         parent = nodes.parentPath(group.getPath())
@@ -127,7 +127,7 @@ class TestNodes(mayatestutils.BaseMayaTest):
         self.assertEquals(parent.partialPathName(), "group1")
 
     def test_deleteNode(self):
-        node = om2.MObjectHandle(nodes.asMObject(cmds.createNode("transform")))
+        node = om2.MObjectHandle(nodes.createDagNode("testTransform", "transform"))
 
         self.assertTrue(node.isValid() and node.isAlive())
         nodes.delete(node.object())

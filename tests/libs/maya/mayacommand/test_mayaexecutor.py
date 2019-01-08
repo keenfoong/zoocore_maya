@@ -10,13 +10,13 @@ class TestMayaCommandExecutor(mayatestutils.BaseMayaTest):
     @classmethod
     def setUpClass(cls):
         super(TestMayaCommandExecutor, cls).setUpClass()
-        os.environ["TESTDATA"] = "tests.testdata.mayacommanddata;tests.testdata.commanddata"
+        os.environ["TESTDATA"] = "tests.testdata.mayacommanddata.testmayacommand;tests.testdata.commanddata.testcommands"
 
     def setUp(self):
         self.executor = executor.Executor()
         self.executor.flush()
         self.env = "TESTDATA"
-        self.executor.registerEnv(self.env)
+        self.executor.registry.registryByEnv(self.env)
 
     def testCommandExecutes(self):
         result = self.executor.execute("test.mayaSimpleCommand")

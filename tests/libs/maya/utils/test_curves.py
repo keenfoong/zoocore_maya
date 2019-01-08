@@ -45,7 +45,7 @@ class TestShapeLib(mayatestutils.BaseMayaTest):
             self.assertEquals(len(shapeData["knots"]), len(self.data[shapeName]["knots"]))
             self.assertEquals(shapeData["degree"], self.data[shapeName]["degree"])
             self.assertEquals(shapeData["form"], self.data[shapeName]["form"])
-            self.assertEquals(shapeData["knots"], self.data[shapeName]["knots"])
+            self.assertEquals(tuple(shapeData["knots"]), self.data[shapeName]["knots"])
             self.assertEquals(shapeData["overrideColorRGB"], self.data[shapeName]["overrideColorRGB"])
             self.assertEquals(shapeData["overrideEnabled"], self.data[shapeName]["overrideEnabled"])
 

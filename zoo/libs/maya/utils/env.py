@@ -164,18 +164,11 @@ def apiVersion():
 
 
 def globalWidthHeight():
+    """Returns the Scene global render width and height
+
+    :return: The width and height values returns from the "defaultResolution" node
+    :rtype: tuple(int, int)
+    """
     fn = om2.MFnDependencyNode(nodes.asMObject("defaultResolution"))
     width, height = fn.findPlug("width", False).asInt(), fn.findPlug("height", False).asInt()
-    return width, height, float(width) / float(height)
-
-
-def setOverscan(camera, state):
-    fn = om2.MFnDependencyNode(camera)
-    overscan = fn.findPlug("overscan", False)
-    overscan.setFloat(state)
-
-
-def setCameraClipPlanes(camera, nearClip, farClip):
-    fn = om2.MFnDependencyNode(camera)
-    fn.findPlug("nearClipPlane", False).setFloat(nearClip)
-    fn.findPlug("farClipPlane", False).setFloat(farClip)
+    return width, height

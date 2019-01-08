@@ -64,7 +64,7 @@ def nameFromMObject(mobject, partialName=False, includeNamespace=True):
     return name
 
 
-def toApiObject(node):
+def toApiMFnSet(node):
     """
     Returns the appropriate mObject from the api 2.0
 
@@ -73,12 +73,15 @@ def toApiObject(node):
     :return: MFnDagNode, MPlug, MFnDependencyNode
     :rtype: MPlug or MFnDag or MFnDependencyNode
 
-    Example::
-        >>>from zoo.libs.maya.api import nodes
-        >>>node = cmds.polyCube()[0] # str
-        >>>nodes.toApiObject(node) # MFnDagNode
-        >>>node = cmds.createNode("multiplyDivide")
-        >>>nodes.toApiObject(node) # MFnDependencyNode
+    .. code-block:: python
+
+        from zoo.libs.maya.api import nodes
+        node = cmds.polyCube()[0] # str
+        nodes.toApiObject(node)
+        # Result MFnDagNode
+        node = cmds.createNode("multiplyDivide")
+        nodes.toApiObject(node)
+        # Result MFnDependencyNode
     """
     if isinstance(node, om2.MObjectHandle):
         node = node.object()
@@ -113,16 +116,16 @@ def setNodeColour(node, colour, outlinerColour=None):
     plug = dependNode.findPlug("overrideColorRGB", False)
     enabledPlug = dependNode.findPlug("overrideEnabled", False)
     overrideRGBColors = dependNode.findPlug("overrideRGBColors", False)
-    if not plugs.getPlugValue(enabledPlug):
-        plugs.setPlugValue(enabledPlug, True)
-    if not plugs.getPlugValue(overrideRGBColors):
-        plugs.setPlugValue(dependNode.findPlug("overrideRGBColors", False), True)
+    if not enabledPlug.asBool():
+        enabledPlug.setBool(True)
+    if not overrideRGBColors.asBool():
+        dependNode.findPlug("overrideRGBColors", False).setBool(True)
     plugs.setPlugValue(plug, colour)
     # deal with the outliner
     if outlinerColour:
         useOutliner = dependNode.findPlug("useOutlinerColor", False)
-        if plugs.getPlugValue(useOutliner):
-            plugs.setPlugValue(useOutliner, True)
+        if useOutliner.asBool():
+            useOutliner.setBool(True)
         plugs.setPlugValue(dependNode.findPlug("outlinerColor", False), outlinerColour)
 
 
@@ -459,14 +462,15 @@ def iterChildren(mObject, recursive=False, filter=None):
     :type filter: tuple or None
     :return: om.MObject
     """
-    dagNode = om2.MFnDagNode(mObject)
+    dagNode = om2.MDagPath.getAPathTo(mObject)
     childCount = dagNode.childCount()
     if not childCount:
         return
+    filter = filter or ()
 
     for index in xrange(childCount):
         childObj = dagNode.child(index)
-        if childObj.apiType() in filter or filter is None:
+        if not filter or childObj.apiType() in filter:
             yield childObj
             if recursive:
                 for x in iterChildren(childObj, recursive, filter):
@@ -483,12 +487,12 @@ def breadthFirstSearchDag(node, filter=None):
             yield t
 
 
-def getChildren(mObject, recursive=False, filter=om2.MFn.kTransform):
+def getChildren(mObject, recursive=False, filter=(om2.MFn.kTransform,)):
     """This function finds and returns all children mobjects under the given transform, if recursive then including subchildren.
 
     :param mObject: om.MObject, the mObject of the transform to search under
     :param recursive: bool
-    :param filter: int(om.MFn.kTransform), the node type to filter by
+    :param filter: tuple(om.MFn.kTransform, the node type to filter by
     :return: list(MFnDagNode)
     """
     return tuple(iterChildren(mObject, recursive, filter))
@@ -608,7 +612,7 @@ def getParent(mobject):
 
 def isValidMObject(node):
     mo = om2.MObjectHandle(node)
-    return not mo.isValid() or not mo.isAlive()
+    return mo.isValid() and mo.isAlive()
 
 
 def delete(node):
@@ -712,10 +716,21 @@ def hasAttribute(node, name):
     return om2.MFnDependencyNode(node).hasAttribute(name)
 
 
-def setMatrix(mobject, matrix):
+def setMatrix(mobject, matrix, space=om2.MSpace.kTransform):
+    """Sets the objects matrix using om2.MTransform.
+
+    :param mobject: The transform Mobject to modify
+    :type mobject: :class:`om2.MSpace.kWorld`
+    :param matrix: The maya MMatrix to set
+    :type matrix: :class:`om2.MMatrix`
+    :param space: The coordinate space to set the matrix by
+    """
     dag = om2.MFnDagNode(mobject)
-    trans = om2.MFnTransform(dag.getPath())
-    trans.setTransformation(om2.MTransformationMatrix(matrix))
+    transform = om2.MFnTransform(dag.getPath())
+    tMtx = om2.MTransformationMatrix(matrix)
+    transform.setTranslation(tMtx.translation(space), space)
+    transform.setRotation(tMtx.rotation(asQuaternion=True), space)
+    transform.setScale(tMtx.scale(space))
 
 
 def setTranslation(obj, position, space=None):
@@ -908,6 +923,10 @@ def addAttribute(node, longName, shortName, attrType=attrtypes.kMFnNumericDouble
         # double angle
         attrMobj = addAttribute(myNode, "myAngle", "myAngle", attrType=attrtypes.kMFnUnitAttributeAngle,
                                  keyable=True, channelBox=False)
+        # double angle
+        attrMobj = addAttribute(myNode, "myEnum", "myEnum", attrType=attrtypes.kMFnkEnumAttribute,
+                                 keyable=True, channelBox=True, fields=["one", "two", "three"])
+
 
     """
     if hasAttribute(node, longName):
@@ -944,6 +963,10 @@ def addAttribute(node, longName, shortName, attrType=attrtypes.kMFnNumericDouble
     elif attrType == attrtypes.kMFnkEnumAttribute:
         attr = om2.MFnEnumAttribute()
         aobj = attr.create(longName, shortName)
+        fields = kwargs.get("fields")
+        if fields is not None:
+            for index in xrange(len(fields)):
+                attr.addField(fields[index], index)
     elif attrType == attrtypes.kMFnCompoundAttribute:
         attr = om2.MFnCompoundAttribute()
         aobj = attr.create(longName, shortName)
@@ -1019,7 +1042,7 @@ def addAttribute(node, longName, shortName, attrType=attrtypes.kMFnNumericDouble
         aobj = attr.create(longName, shortName, om2.MFnNumericData.k3Double)
     elif attrType == attrtypes.kMFnNumeric3Float:
         attr = om2.MFnNumericAttribute()
-        aobj = attr.create(longName, shortName, om2.MFnNumericData.k3Float)
+        aobj = attr.createPoint(longName, shortName)
     elif attrType == attrtypes.kMFnNumeric3Int:
         attr = om2.MFnNumericAttribute()
         aobj = attr.create(longName, shortName, om2.MFnNumericData.k3Int)
@@ -1033,8 +1056,9 @@ def addAttribute(node, longName, shortName, attrType=attrtypes.kMFnNumericDouble
         attr = om2.MFnNumericAttribute()
         aobj = attr.create(longName, shortName, om2.MFnNumericData.k4Double)
 
+    attr.array = isArray
     if aobj is not None and apply:
-        attr.array = isArray
+
         mod = om2.MDGModifier()
         mod.addAttribute(node, aobj)
         mod.doIt()

@@ -1,6 +1,6 @@
 import logging
 
-from tests import unittestBase
+from zoo.libs.utils import unittestBase
 from maya import cmds
 logger = logging.getLogger(__name__)
 

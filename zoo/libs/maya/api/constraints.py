@@ -1,3 +1,7 @@
+"""
+Note: this whole module is being replaced with spaceSwitching code.
+"""
+
 import json
 import logging
 
@@ -11,6 +15,7 @@ from zoo.libs.maya.api import attrtypes
 from zoo.libs.maya.utils import creation
 
 logger = logging.getLogger(__name__)
+
 PARENTCONSTRAINT_TYPE = 0
 SCALECONSTRAINT_TYPE = 1
 POINTCONSTRAINT_TYPE = 2

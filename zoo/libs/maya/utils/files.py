@@ -27,7 +27,7 @@ def exportContext(rootNode):
 def exportSceneAsFbx(filePath, skeletonDefinition=False, constraints=False):
     filePath = filePath.replace("/", "\\")
     mel.eval("FBXExportSmoothingGroups -v true;")
-    mel.eval("FBXExportHardEdges -v true;")
+    mel.eval("FBXExportHardEdges -v false;")
     mel.eval("FBXExportTangents -v true;")
     mel.eval("FBXExportSmoothMesh -v false;")
     mel.eval("FBXExportInstances -v true;")

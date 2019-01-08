@@ -33,7 +33,9 @@ class Shelf(object):
                       overlayLabelBackColor=self.labelBackground,
                       style=style,
                       overlayLabelColor=self.labelColour,
-                      sourceType=Type)
+                      sourceType=Type,
+                      scaleIcon=True,
+                      statusBarMessage=tooltip)
         if style is not "iconOnly":
             kwargs["imageOverlayLabel"] = label
         return cmds.shelfButton(**kwargs)
@@ -75,8 +77,20 @@ def cleanOldShelf(shelfName):
 
 
 def primaryshelfLayout():
+    """Returns the main maya shelf layer path.
+
+    Have to mel globals here, the hell?
+
+    :return: The shelf layout path
+    :rtype: str
+    """
     return mel.eval("$_tempVar = $gShelfTopLevel")
 
 
 def activeShelf():
+    """Returns the currently active maya shelf as a :class:`Shelf` object.
+
+    :return:
+    :rtype: :class:`Shelf`
+    """
     return Shelf(cmds.tabLayout(primaryshelfLayout(), query=True, selectTab=True))
