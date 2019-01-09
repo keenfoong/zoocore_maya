@@ -16,7 +16,7 @@ class MayaScriptEditorDialog(dialog.Dialog):
         super(MayaScriptEditorDialog, self).__init__(title, width, height, icon, parent, showOnInitialize)
         layout = qtutils.vBoxLayout(self)
         self.currentType = "python"
-        self.sourceTypeWidget = layouts.HRadioButtonGroup(("mel", "python"), default=1, parent=self)
+        self.sourceTypeWidget = layouts.RadioButtonGroup(("mel", "python"), default=1, parent=self)
         layout.addWidget(self.sourceTypeWidget)
         self.melEditor, self._melInternalWidget = mayaui.highlighterEditorWidget(sourceType="mel",
                                                                                  **{"showLineNumbers": True})
