@@ -151,19 +151,7 @@ class MetaRigBase(base.MetaBase):
 
 
 class MetaRig(MetaRigBase):
-    _rootPrefix = "ROOT"
-    RIGNAMEATTR = "name"
-    RIGVERSIONATTR = "rigVersion"
-
-    def addRootNode(self, node, name):
-        attrname = "_".join([self._rootPrefix, name])
-        return self.connectTo(attrname, node)
-
-    def metaAttributes(self):
-        baseData = super(MetaRig, self).metaAttributes()
-        baseData.extend([{"name": self.RIGVERSIONATTR, "value": 1, "Type": attrtypes.kMFnNumericInt},
-                         {"name": self.RIGNAMEATTR, "value": "", "Type": attrtypes.kMFnDataString}])
-        return baseData
+    pass
 
 
 class MetaSupportSystem(MetaRigBase):

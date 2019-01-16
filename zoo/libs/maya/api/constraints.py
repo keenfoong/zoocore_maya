@@ -146,7 +146,8 @@ class MatrixConstraint(BaseConstraint):
     def driverObjects(self):
         pass
 
-    def create(self, driver, driven, skipScale=None, skipRotate=None, skipTranslate=None, maintainOffset=False):
+    def create(self, driver, driven, skipScale=None, skipRotate=None, skipTranslate=None, maintainOffset=False,
+               space=om2.MFn.kWorld):
         composename = "_".join([self.name, "wMtxCompose"])
 
         multMatrix = None

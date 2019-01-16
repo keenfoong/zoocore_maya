@@ -18,7 +18,7 @@ APITOCMDS_CONSTRAINT_MAP = {om2.MFn.kParentConstraint: {"type": 'parentConstrain
                             om2.MFn.kPointConstraint: {"type": 'pointConstraint', "targetPlugIndex": 4},
                             om2.MFn.kOrientConstraint: {"type": 'orientConstraint', "targetPlugIndex": 4},
                             om2.MFn.kScaleConstraint: {"type": "scaleConstraint", "targetPlugIndex": 2},
-                            om2.MFn.kAimConstraint: {"type": "scaleConstraint", "targetPlugIndex": 4}}
+                            om2.MFn.kAimConstraint: {"type": "aimConstraint", "targetPlugIndex": 4}}
 
 
 def findConstraint(node, kType, includeReferenced=True):
@@ -164,7 +164,7 @@ def buildConstraint(source, targets, maintainOffset=False,
         spaceAttr = nodes.addAttribute(spaceNode, attrName, attrName, attrType=attrtypes.kMFnkEnumAttribute,
                                        keyable=True,
                                        channelBox=True, locked=False,
-                                       fields=targetLabels)
+                                       enums=targetLabels)
         spacePlug = om2.MPlug(spaceNode, spaceAttr.object())
 
     constraintFn = om2.MFnDependencyNode(constraintMObject)

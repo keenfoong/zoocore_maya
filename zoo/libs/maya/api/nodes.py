@@ -498,15 +498,17 @@ def getChildren(mObject, recursive=False, filter=(om2.MFn.kTransform,)):
     return tuple(iterChildren(mObject, recursive, filter))
 
 
-def iterAttributes(node, skip=None):
+def iterAttributes(node, skip=None, includeAttributes=()):
+    skip = skip or ()
     dep = om2.MFnDependencyNode(node)
     for idx in xrange(dep.attributeCount()):
         attr = dep.attribute(idx)
         plug = om2.MPlug(node, attr)
         name = plug.name()
-        if skip and any(i in name for i in skip):
+
+        if any(i in name for i in skip) and not any(i in name for i in includeAttributes):
             continue
-        if "]" in name or plug.isChild:
+        elif plug.isElement or plug.isChild:
             continue
         for child in plugs.iterChildren(plug):
             yield child
@@ -630,9 +632,13 @@ def delete(node):
     mod.doIt()
 
 
-def getOffsetMatrix(startObj, endObj):
-    start = getWorldMatrix(startObj)
-    end = getWorldMatrix(endObj)
+def getOffsetMatrix(startObj, endObj, space=om2.MFn.kWorld):
+    if space == om2.MFn.kWorld:
+        start = getWorldMatrix(startObj)
+        end = getWorldMatrix(endObj)
+    else:
+        start = getMatrix(startObj)
+        end = getMatrix(endObj)
     mOutputMatrix = end * start.inverse()
     return mOutputMatrix
 
@@ -925,7 +931,7 @@ def addAttribute(node, longName, shortName, attrType=attrtypes.kMFnNumericDouble
                                  keyable=True, channelBox=False)
         # double angle
         attrMobj = addAttribute(myNode, "myEnum", "myEnum", attrType=attrtypes.kMFnkEnumAttribute,
-                                 keyable=True, channelBox=True, fields=["one", "two", "three"])
+                                 keyable=True, channelBox=True, enums=["one", "two", "three"])
 
 
     """
@@ -963,7 +969,7 @@ def addAttribute(node, longName, shortName, attrType=attrtypes.kMFnNumericDouble
     elif attrType == attrtypes.kMFnkEnumAttribute:
         attr = om2.MFnEnumAttribute()
         aobj = attr.create(longName, shortName)
-        fields = kwargs.get("fields")
+        fields = kwargs.get("enums")
         if fields is not None:
             for index in xrange(len(fields)):
                 attr.addField(fields[index], index)
@@ -1068,7 +1074,7 @@ def addAttribute(node, longName, shortName, attrType=attrtypes.kMFnNumericDouble
     return attr
 
 
-def serializeNode(node, skipAttributes=None, includeConnections=True):
+def serializeNode(node, skipAttributes=None, includeConnections=True, includeAttributes=()):
     """This function takes an om2.MObject representing a maya node and serializes it into a dict,
     This iterates through all attributes, serializing any extra attributes found, any default attribute has not changed
     (defaultValue) and not connected or is an array attribute will be skipped.
@@ -1129,8 +1135,8 @@ def serializeNode(node, skipAttributes=None, includeConnections=True):
         data["parent"] = om2.MFnDagNode(dep.parent(0)).fullPathName()
     attributes = []
     visited = []
-    for pl in iterAttributes(node, skip=skipAttributes):
-        if pl in visited or (pl.isDefaultValue() and not pl.isConnected) or pl.isChild:
+    for pl in iterAttributes(node, skip=skipAttributes, includeAttributes=includeAttributes):
+        if (pl in visited or ((pl.isDefaultValue() and not pl.isConnected) or pl.isChild)) and not any(i in pl.name() for i in includeAttributes):
             continue
         attrData = plugs.serializePlug(pl)
         if attrData:

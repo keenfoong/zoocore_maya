@@ -16,7 +16,7 @@ class TestMayaCommandExecutor(mayatestutils.BaseMayaTest):
         self.executor = executor.Executor()
         self.executor.flush()
         self.env = "TESTDATA"
-        self.executor.registry.registryByEnv(self.env)
+        self.executor.registry.registerByEnv(self.env)
 
     def testCommandExecutes(self):
         result = self.executor.execute("test.mayaSimpleCommand")

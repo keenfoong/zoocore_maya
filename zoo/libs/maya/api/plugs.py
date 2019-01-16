@@ -834,25 +834,6 @@ def setPlugInfoFromDict(plug, **kwargs):
     softMax = kwargs.get("softMax")
     value = kwargs.get("value")
     Type = kwargs.get("Type")
-    # certain data types require casting i.e MDistance
-    if default is not None and Type is not None:
-        if Type == attrtypes.kMFnDataString:
-            default = om2.MFnStringData().create(default)
-        elif Type == attrtypes.kMFnDataMatrix:
-            default = om2.MMatrix(default)
-            value = om2.MMatrix(value)
-        elif Type == attrtypes.kMFnUnitAttributeAngle:
-            default = om2.MAngle(default, om2.MAngle.kDegrees)
-            value = om2.MAngle(value, om2.MAngle.kDegrees)
-        elif Type == attrtypes.kMFnUnitAttributeDistance:
-            default = om2.MDistance(default)
-            value = om2.MDistance(value)
-        elif Type == attrtypes.kMFnUnitAttributeTime:
-            default = om2.MTime(default)
-            value = om2.MTime(value)
-        setPlugDefault(plug, default)
-    if value is not None and not plug.attribute().hasFn(om2.MFn.kMessageAttribute):
-        setPlugValue(plug, value)
     if min is not None:
         setMin(plug, min)
     if max is not None:
@@ -861,6 +842,27 @@ def setPlugInfoFromDict(plug, **kwargs):
         setSoftMin(plug, softMin)
     if softMax is not None:
         setSoftMax(plug, softMax)
+    # certain data types require casting i.e MDistance
+    if default is not None and Type is not None:
+        if Type == attrtypes.kMFnDataString:
+            default = om2.MFnStringData().create(default)
+        elif Type == attrtypes.kMFnDataMatrix:
+            default = om2.MMatrix(default)
+            value = om2.MMatrix(value)
+        elif Type == attrtypes.kMFnUnitAttributeAngle:
+            default = om2.MAngle(default, om2.MAngle.kRadians)
+            value = om2.MAngle(value, om2.MAngle.kRadians)
+        elif Type == attrtypes.kMFnUnitAttributeDistance:
+            default = om2.MDistance(default)
+            value = om2.MDistance(value)
+        elif Type == attrtypes.kMFnUnitAttributeTime:
+            default = om2.MTime(default)
+            value = om2.MTime(value)
+        setPlugDefault(plug, default)
+    if value is not None and not plug.attribute().hasFn(om2.MFn.kMessageAttribute) and not plug.isCompound and not \
+            plug.isArray:
+        setPlugValue(plug, value)
+
     plug.isChannelBox = kwargs.get("channelBox", False)
     plug.isKeyable = kwargs.get("keyable", False)
     plug.isLocked = kwargs.get("locked", False)

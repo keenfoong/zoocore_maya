@@ -290,10 +290,8 @@ class BootStrapWidget(MayaQWidgetDockableMixin, QtWidgets.QWidget):
                     cmds.workspaceControl(parentName, e=True, restore=True)
                 else:
                     if kwargs['dockable']:
-                        print ("dockable")
                         cmds.workspaceControl(parentName, e=True, visible=True)
                     else:
-                        print("not dockable")
                         # Create our own so we can have our own transparent background
                         ptr = apiUI.MQtUtil.getCurrentParent()
                         mw = wrapinstance(long(ptr), QtWidgets.QMainWindow)
