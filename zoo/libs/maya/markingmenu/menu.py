@@ -2,13 +2,14 @@ import os
 import pprint
 from functools import partial
 
+from zoo.libs import iconlib
 from zoo.libs.utils import filesystem
 from zoo.libs.maya.qt import mayaui
 from qt import QtWidgets
 from zoo.libs.utils import classtypes
 from zoo.libs.utils import general
 from zoo.libs.utils import zlogging
-from zoo.libs.command import executor
+from zoo.libs.plugin import plugin, pluginmanager
 from maya import cmds
 
 logger = zlogging.getLogger(__name__)
@@ -41,11 +42,18 @@ class LayoutRegistry(object):
     to the directories of the layout, each path should be separated using :class:`os.pathsep`
     """
     LAYOUT_ENV = "ZOO_MM_LAYOUT_PATH"
+    MENU_ENV = "ZOO_MM_MENU_PATH"
+    COMMAND_ENV = "ZOO_MM_COMMAND_PATH"
+
     __metaclass__ = classtypes.Singleton
 
     def __init__(self):
         self.layouts = {}
         self.registerLayoutByEnv(LayoutRegistry.LAYOUT_ENV)
+        self.menuRegistry = pluginmanager.PluginManager(interface=MarkingMenu, variableName="id")
+        self.commandRegistry = pluginmanager.PluginManager(interface=MarkingMenuCommand, variableName="id")
+        self.menuRegistry.registerByEnv(LayoutRegistry.MENU_ENV)
+        self.commandRegistry.registerByEnv(LayoutRegistry.COMMAND_ENV)
 
     def registerLayoutByEnv(self, env):
         """Recursively Registers all layout files with the extension .mmlayout and loads the json data with a layout
@@ -56,19 +64,32 @@ class LayoutRegistry(object):
         """
         paths = os.environ.get(env, "").split(os.pathsep)
         for p in paths:
-            for root, dirs, files in os.walk(p):
-                for f in files:
-                    layoutFile = os.path.join(root, f)
-                    try:
-                        if f.endswith(".mmlayout"):
-                            data = filesystem.loadJson(layoutFile)
-                            self.layouts[data["id"]] = Layout(data)
-                    # If the Json data is invalid(formatted) it will raise a valueError without a file location
-                    # so raise something useful
-                    except ValueError:
-                        raise InvalidJsonFileFormat("Layout file: {} is invalid possibly due to the "
-                                                    "formatting.".format(layoutFile),
-                                                    exc_info=True)
+            if os.path.isdir(p):
+                for root, dirs, files in os.walk(p):
+                    for f in files:
+                        layoutFile = os.path.join(root, f)
+                        try:
+                            if f.endswith(".mmlayout"):
+                                data = filesystem.loadJson(layoutFile)
+                                self.layouts[data["id"]] = Layout(data)
+                        # If the Json data is invalid(formatted) it will raise a valueError without a file location
+                        # so raise something useful
+                        except ValueError:
+                            raise InvalidJsonFileFormat("Layout file: {} is invalid possibly due to the "
+                                                        "formatting.".format(layoutFile),
+                                                        exc_info=True)
+            elif p.endswith("mmlayout"):
+                try:
+                    if p.endswith(".mmlayout"):
+                        data = filesystem.loadJson(p)
+                        self.layouts[data["id"]] = Layout(data)
+                # If the Json data is invalid(formatted) it will raise a valueError without a file location
+                # so raise something useful
+                except ValueError:
+                    raise InvalidJsonFileFormat("Layout file: {} is invalid possibly due to the "
+                                                "formatting.".format(p),
+                                                exc_info=True)
+
 
     def registerLayoutData(self, data):
         """Adds the layout data structure as a :class:`Layout` using the data["id"] as the
@@ -85,19 +106,18 @@ class Layout(object):
 
     .. code-block:: python
 
-        layoutData={"items":{"N": "",
-                              "NW": "",
-                              "W": "",
-                              "SW": "",
-                              "S": "",
-                              "SE": "",
-                              "E": "",
-                              "NE": "",
+        layoutData={"items":{"N": {},
+                              "NW": {},
+                              "W": {},
+                              "SW": {},
+                              "S": {},
+                              "SE": {},
+                              "E": {},
+                              "NE": {},
                               "generic": [{"type": "menu",
                                           "name": "Testmenu",
-                                          "children": [{"type": "python",
-                                                        "command": "",
-                                                        "commandUi": ""}
+                                          "children": [{"type": "command",
+                                                        "id": ""}
                                                         ]
                                           ]
 
@@ -106,9 +126,6 @@ class Layout(object):
         layoutObj = Layout(layoutData)
 
     """
-
-    #: zoo Command Executor which will be used by the menu item to execute commands
-    executor = executor.Executor()
 
     def __init__(self, data):
         """
@@ -144,23 +161,24 @@ class Layout(object):
     def items(self):
         """ Returns the item dict for this layout in the form of::
 
-            {"N": "",
-            "NW": "",
-            "W": "",
-            "SW": "",
-            "S": "",
-            "SE": "",
-            "E": "",
-            "NE": "",
-            "generic": [{"type": "menu",
-                      "name": "Testmenu",
-                      "children": [{"type": "python",
-                                    "command": "",
-                                    "commandUi": ""}
-                                    ]
-                      ]
+        .. code-block:: python
 
-            }
+            layoutData={"N": {},
+                              "NW": {},
+                              "W": {},
+                              "SW": {},
+                              "S": {},
+                              "SE": {},
+                              "E": {},
+                              "NE": {},
+                              "generic": [{"type": "menu",
+                                          "name": "Testmenu",
+                                          "children": [{"type": "command",
+                                                        "id": ""}
+                                                        ]
+                                          ]
+
+                              }
 
         :return: The layout items dict
         :rtype: dict
@@ -190,17 +208,16 @@ class Layout(object):
         for item, data in iter(layout["items"].items()):
             if not data:
                 continue
+            # handle nested layouts
             elif isinstance(data, Layout):
                 failed.extend(self.validate(data))
+            # generic type is the linear list of action south of the radial menu
             elif item == "generic":
                 failed.extend(self._validateGeneric(data))
-            elif data.get("type", "") == "python":
-                continue
-            elif data.get("type", "") == "zooCommand":
-                command = self.executor.findCommand(data["command"])
+            elif data.get("type", "") == "command":
+                command = LayoutRegistry().commandRegistry.getPlugin(data["id"])
                 if not command:
                     failed.append(data)
-
             else:
                 failed.append(data)
         return failed
@@ -217,15 +234,12 @@ class Layout(object):
         for item in iter(data):
             commandType = item["type"]
             # cant validate python commands without executing them?
-            if commandType == "python":
-                continue
-            elif commandType == "menu":
+            if commandType == "menu":
                 failed.extend(self._validateGeneric(item["children"]))
-            elif commandType == "zooCommand":
-                command = self.executor.findCommand(item)
+            elif commandType == "command":
+                command = LayoutRegistry().commandRegistry.getPlugin(item["id"])
                 if not command:
                     failed.append(item)
-                continue
             else:
                 failed.append(item)
 
@@ -250,14 +264,13 @@ class Layout(object):
                 solved = True
                 continue
             elif data["type"] == "layout":
-                subLayout = registry.layouts.get(data["command"])
+                subLayout = registry.layouts.get(data["id"])
                 if not subLayout:
                     logger.warning("No layout with the id {}, skipping".format(data))
                     continue
                 subLayout.solve()
-                self.data[item] = subLayout
+                self.data["items"][item] = subLayout
                 solved = True
-
         self.solved = solved
         return solved
 
@@ -266,8 +279,34 @@ class MarkingMenu(object):
     """Maya MarkingMenu wrapper object to support zoocommands and python executable code. MM layouts are defined by the
     Layout instance class
     """
+    @staticmethod
+    def buildDynamicMenu(clsId, parent, arguments):
+        """Build's a marking menu from the clsId which should exist with our marking menu registry.
 
-    def __init__(self, layout, name, parent, commandExecutor):
+        :param clsId: the classId string
+        :type clsId: str
+        :param parent: The parent menu or widget fullPath.
+        :type parent: str
+        :param arguments: The arguments to pass to the custom menu class
+        :type arguments: dict
+        :return: If the classid exists then the newly created marking menu class will be returned
+        :rtype: :class:`MarkingMenu` or None
+        """
+        registry = LayoutRegistry()
+
+        menuCls = registry.menuRegistry.loadPlugin(clsId, **{"layout": Layout({"id": clsId}),
+                                                             "name": clsId,
+                                                             "parent": parent,
+                                                             "registry": LayoutRegistry()})
+        if not menuCls:
+            return
+        if cmds.popupMenu(parent, ex=True):
+            menuCls.attach(**arguments)
+        else:
+            menuCls.create(**arguments)
+        return menuCls
+
+    def __init__(self, layout, name, parent, registry):
         """
         :param layout: the markingMenu layout instance
         :type layout: :class:`Layout`
@@ -280,15 +319,15 @@ class MarkingMenu(object):
         """
         self.layout = layout
         self.name = name
-        self.commandExecutor = commandExecutor
         self.parent = parent
         self.popMenu = None  # the menu popup menu, gross thanks maya
+        self.registry = registry
         # Arguments that will be passed to the menu item command to be executed
         self.commandArguments = {}
         if cmds.popupMenu(name, ex=True):
             cmds.deleteUI(name)
 
-        self.options = {"allowOptionBoxes": False,
+        self.options = {"allowOptionBoxes": True,
                         "altModifier": False,
                         "button": 1,
                         "ctrlModifier": False,
@@ -338,46 +377,79 @@ class MarkingMenu(object):
     def _show(self, menu, parent):
         cmds.setParent(menu, menu=True)
         cmds.menu(menu, edit=True, deleteAllItems=True)
-
         self.show(self.layout, menu, parent)
 
     def kill(self):
+        """Destroy's the pop menu from maya.
+        """
         if cmds.popupMenu(self.name, ex=True):
             cmds.deleteUI(self.name)
 
     def addCommand(self, item, parent, radialPosition=None):
-        command = self.commandExecutor.findCommand(item["command"])
-        if command is None:
-            logger.warning("Failed To find Command: {}".format(item["command"]))
-            return
-        commandAction = command.commandAction(uiType=1, parent=parent)
-        commandAction.triggered.connect(partial(self.executeCommand, command))
-        if radialPosition:
-            cmds.menuItem(commandAction.item, e=True, radialPosition=radialPosition.upper())
-        return commandAction
+        """Adds the specified command item to the parent menu.
 
-    def addPythonCommand(self, item, parent, radialPosition=None):
-        menuItem = cmds.menuItem(label=item["label"], command=partial(self.executePythonCommand,
-                                                                      item["command"]),
-                                 parent=parent)
-        optionBox = item.get("optionBox", False)
+        :param item: {"type": "command", "id": "myCustomCommand"}
+        :type item: dict
+        :param parent: The parent menu string
+        :type parent: str
+        :param radialPosition: The radial position i.e "N"
+        :type radialPosition: str or None
+        """
+        command = self.registry.commandRegistry.loadPlugin(item["id"])
+        if command is None:
+            logger.warning("Failed To find Command: {}".format(item["id"]))
+            return
+        cmdArgOverride = item.get("arguments", self.commandArguments)
+        uiData = command.uiData(cmdArgOverride)
+        optionBox = uiData.get("optionBox", False)
+        iconPath = uiData.get("icon")
+        iconOptionBox = uiData.get("optionBoxIcon")
+        if iconPath:
+            iconPath = iconlib.iconPathForName(iconPath)
+        if iconOptionBox:
+            optionBoxIcon = iconlib.iconPathForName(iconOptionBox)
+
+
+        arguments = dict(label=uiData["label"],  parent=parent,
+                         command=partial(command._execute, cmdArgOverride),
+                         optionBox=False,
+                         image=iconPath
+                         )
+        if uiData.get("italic", False):
+            arguments["italicized"] = True
+        if uiData.get("bold", False):
+            arguments["boldFont"] = True
+        if radialPosition is not None:
+            arguments["radialPosition"] = radialPosition
+
+        cmds.menuItem(**arguments)
         if optionBox:
-            cmds.menuItem(parent=parent, optionBox=optionBox, command=item["commandUi"])
-        if radialPosition:
-            cmds.menuItem(menuItem.item, e=True, radialPosition=radialPosition.upper())
+            cmds.menuItem(parent=parent,
+                          optionBoxIcon=optionBoxIcon,
+                          optionBox=optionBox,
+                          command=partial(command._execute, True, cmdArgOverride))
 
     def _buildGeneric(self, data, menu):
         for item in data:
-            if item["type"] == "zooCommand":
+            if item["type"] == "command":
                 self.addCommand(item, menu)
                 continue
             elif item["type"] == "menu":
                 subMenu = cmds.menuItem(label=item["label"], subMenu=True)
                 self._buildGeneric(item["children"], subMenu)
-            elif item["type"] == "python":
-                self.addPythonCommand(item, parent=menu)
 
     def show(self, layout, menu, parent):
+        """Main Method that converts the layout to a maya marking menu.
+
+        If implementing a subclass then super must be called.
+
+        :param layout: The layout class to convert
+        :type layout: :class:`Layout`
+        :param menu: The menu fullPath which commands will be attached too.
+        :type menu: str
+        :param parent: The Parent full Path name.
+        :type parent: str
+        """
         for item, data in layout.items():
             if not data:
                 continue
@@ -389,22 +461,8 @@ class MarkingMenu(object):
             elif isinstance(data, Layout):
                 radMenu = cmds.menuItem(label=data["id"], subMenu=True, radialPosition=item.upper())
                 self.show(data, radMenu, parent)
-            elif data["type"] == "zooCommand":
+            elif data["type"] == "command":
                 self.addCommand(data, parent=menu, radialPosition=item.upper())
-            elif data["type"] == "python":
-                self.addPythonCommand(data, parent=menu, radialPosition=item.upper())
-
-    def executeCommand(self, command, *args):
-        """Handles execution of a ZooCommand from the marking menu item
-
-        :param command:
-        :type command: :class:`zoo.libs.command.command.ZooCommand`
-        """
-        # command executor handles errors so just execute it
-        self.commandExecutor.execute(command.id, **self.commandArguments)
-
-    def executePythonCommand(self, command, *args):
-        pass
 
     def allowOptionBoxes(self):
         return cmds.popupMenu(self.name, q=True, allowOptionBoxes=True)
@@ -429,40 +487,82 @@ class MarkingMenu(object):
         return cmds.popupMenu(self.name, exists=True)
 
     def itemArray(self):
-        return cmds.popupMenu(self.name, q=True, itemArray=True)
+        if self.exists():
+            return cmds.popupMenu(self.name, q=True, itemArray=True)
 
     def markingMenu(self):
-        return cmds.popupMenu(self.name, q=True, markingMenu=True)
+        if self.exists():
+            return cmds.popupMenu(self.name, q=True, markingMenu=True)
 
     def numberOfItems(self):
-        return cmds.popupMenu(self.name, q=True, numberOfItems=True)
+        if self.exists():
+            return cmds.popupMenu(self.name, q=True, numberOfItems=True)
 
     def postMenuCommand(self, command):
-        cmds.popupMenu(self.name, e=True, postMenuCommand=command)
+        if self.exists():
+            cmds.popupMenu(self.name, e=True, postMenuCommand=command)
 
     def postMenuCommandOnce(self, state):
-        cmds.popupMenu(self.name, e=True, postMenuCommandOnce=state)
+        if self.exists():
+            cmds.popupMenu(self.name, e=True, postMenuCommandOnce=state)
 
     def shiftModifier(self):
-        return cmds.popupMenu(self.name, q=True, shiftModifier=True)
+        if self.exists():
+            return cmds.popupMenu(self.name, q=True, shiftModifier=True)
 
     def setShiftModifier(self, value):
-        return cmds.popupMenu(self.name, e=True, shiftModifier=value)
+        if self.exists():
+            return cmds.popupMenu(self.name, e=True, shiftModifier=value)
 
     def setParent(self, parent):
-        return cmds.popupMenu(self.name, e=True, parent=parent.objectName())
+        if self.exists():
+            return cmds.popupMenu(self.name, e=True, parent=parent.objectName())
 
     def setCtrlModifier(self, value):
-        return cmds.popupMenu(self.name, e=True, ctrlModifier=value)
+        if self.exists():
+            return cmds.popupMenu(self.name, e=True, ctrlModifier=value)
 
     def setAltModifier(self, state):
-        return cmds.popupMenu(self.name, e=True, altModifier=state)
+        if self.exists():
+            return cmds.popupMenu(self.name, e=True, altModifier=state)
 
     def setUseLeftMouseButton(self):
-        return cmds.popupMenu(self.name, e=True, button=1)
+        self.options["button"] = 1
+        if self.exists():
+            return cmds.popupMenu(self.name, e=True, button=1)
 
     def setUseRightMouseButton(self):
-        return cmds.popupMenu(self.name, e=True, button=2)
+        self.options["button"] = 3
+        if self.exists():
+            return cmds.popupMenu(self.name, e=True, button=3)
 
     def setUseMiddleMouseButton(self):
-        return cmds.popupMenu(self.name, e=True, button=3)
+        self.options["button"] = 2
+        if self.exists():
+            return cmds.popupMenu(self.name, e=True, button=2)
+
+
+class MarkingMenuCommand(plugin.Plugin):
+    documentation = __doc__
+    id = ""
+    creator = "Zootools"
+
+    @staticmethod
+    def uiData(arguments):
+        return {"icon": "",
+                "label": "",
+                "bold": False,
+                "italic": False,
+                "optionBox": False
+                }
+    def _execute(self, arguments, optionBox=False, *args):
+        if optionBox:
+            self.executeUI(arguments)
+        else:
+            self.execute(arguments)
+
+    def execute(self, arguments):
+        pass
+
+    def executeUI(self, arguments):
+        pass

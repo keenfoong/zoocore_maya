@@ -1,0 +1,27 @@
+{
+  "items": {
+    "N": {
+      "type": "command",
+      "id": "printNodePath"
+    },
+    "NW": {
+      "type": "command",
+      "id": "printNodePath"
+    },
+    "W": {"type": "layout",
+          "id": "nestedLayout"},
+    "SW": {},
+    "S": {},
+    "SE": {},
+    "E": {},
+    "NE": {},
+    "generic": [
+      {
+        "type": "command",
+        "id": "printNodePath"
+      }
+
+    ]
+  },
+  "id": "some.layout.id"
+}

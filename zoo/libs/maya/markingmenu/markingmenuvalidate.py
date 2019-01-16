@@ -15,10 +15,11 @@ def validateAndBuild(parentMenu, nodeName):
         return 0
     if not utils.hasTrigger(triggerNode):
         return 0
-    triggerNodes = [triggerNode] + scene.getSelectedNodes()
+    triggerNodes = [triggerNode] + [i for i in scene.getSelectedNodes() if i != triggerNode]
 
     visited = []
     validLayout = None
+    dynamic = False
     # gather the trigger information from the current node and the selection
     for st in triggerNodes:
         # get the compound trigger plug
@@ -32,10 +33,7 @@ def validateAndBuild(parentMenu, nodeName):
             # pull the command type and command string from the compoundplug
             commandType = tp.child(0).asInt()
             commandStr = tp.child(1).asString()
-            if commandType in (utils.PYTHON_TYPE, utils.COMMAND_TYPE):
-                logger.error("Currently not supported, soon to be done")
-                pass
-            elif commandType == utils.LAYOUT_TYPE:
+            if commandType == utils.LAYOUT_TYPE:
                 layout = menu.findLayout(commandStr)
                 if not layout:
                     continue
@@ -43,9 +41,17 @@ def validateAndBuild(parentMenu, nodeName):
                     validLayout.merge(layout)
                 else:
                     validLayout = layout
-    if validLayout is None:
-        return 0
-    validLayout.solve()
-    mainMenu = menu.MarkingMenu(validLayout, "zooTriggerMenu", parentMenu, validLayout.executor)
-    mainMenu.attach(**{"nodes": map(om2.MObjectHandle, triggerNodes)})
+            elif commandType == utils.DYNAMIC_TYPE:
+                dynamic = True
+                break
+    if not dynamic:
+        if validLayout is None:
+            return 0
+        validLayout.solve()
+
+        mainMenu = menu.MarkingMenu(validLayout, "zooTriggerMenu", parentMenu, menu.LayoutRegistry())
+        mainMenu.attach(**{"nodes": map(om2.MObjectHandle, triggerNodes)})
+    else:
+        menu.MarkingMenu.buildDynamicMenu(commandStr, parent=parentMenu,
+                                          arguments={"nodes": map(om2.MObjectHandle, triggerNodes)})
     return 1
