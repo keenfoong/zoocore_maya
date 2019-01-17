@@ -10,9 +10,8 @@ COMMANDTYPE_ATTR_NAME = "zooTriggerCommandType"
 COMMAND_ATTR_NAME = "zooTriggerString"
 
 # command Types
-PYTHON_TYPE = 0
-COMMAND_TYPE = 1
-LAYOUT_TYPE = 2
+LAYOUT_TYPE = 0
+DYNAMIC_TYPE = 1
 
 
 def updateCommandString(node, value, commandType=None):
