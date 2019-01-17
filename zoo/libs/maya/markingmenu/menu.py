@@ -1,5 +1,4 @@
 import os
-import pprint
 from functools import partial
 
 from zoo.libs import iconlib
@@ -29,12 +28,12 @@ def findLayout(layoutId):
     :return: If the registry has the id then a :class:`Layout` object will be returned
     :rtype: :class:`Layout` or None
     """
-    reg = LayoutRegistry()
+    reg = Registry()
     if layoutId in reg.layouts:
         return reg.layouts[layoutId]
 
 
-class LayoutRegistry(object):
+class Registry(object):
     """This holds all currently available layout classes discovered in the environment
     use :func:`findLayout` to get the layout from this registry.
 
@@ -49,11 +48,11 @@ class LayoutRegistry(object):
 
     def __init__(self):
         self.layouts = {}
-        self.registerLayoutByEnv(LayoutRegistry.LAYOUT_ENV)
+        self.registerLayoutByEnv(Registry.LAYOUT_ENV)
         self.menuRegistry = pluginmanager.PluginManager(interface=MarkingMenu, variableName="id")
         self.commandRegistry = pluginmanager.PluginManager(interface=MarkingMenuCommand, variableName="id")
-        self.menuRegistry.registerByEnv(LayoutRegistry.MENU_ENV)
-        self.commandRegistry.registerByEnv(LayoutRegistry.COMMAND_ENV)
+        self.menuRegistry.registerByEnv(Registry.MENU_ENV)
+        self.commandRegistry.registerByEnv(Registry.COMMAND_ENV)
 
     def registerLayoutByEnv(self, env):
         """Recursively Registers all layout files with the extension .mmlayout and loads the json data with a layout
@@ -71,7 +70,7 @@ class LayoutRegistry(object):
                         try:
                             if f.endswith(".mmlayout"):
                                 data = filesystem.loadJson(layoutFile)
-                                self.layouts[data["id"]] = Layout(data)
+                                self.layouts[data["id"]] = Layout(**data)
                         # If the Json data is invalid(formatted) it will raise a valueError without a file location
                         # so raise something useful
                         except ValueError:
@@ -82,7 +81,7 @@ class LayoutRegistry(object):
                 try:
                     if p.endswith(".mmlayout"):
                         data = filesystem.loadJson(p)
-                        self.layouts[data["id"]] = Layout(data)
+                        self.layouts[data["id"]] = Layout(**data)
                 # If the Json data is invalid(formatted) it will raise a valueError without a file location
                 # so raise something useful
                 except ValueError:
@@ -98,10 +97,10 @@ class LayoutRegistry(object):
         :param data: see :class`Layout`
         :type data: dict
         """
-        self.layouts[data["id"]] = Layout(data)
+        self.layouts[data["id"]] = Layout(**data)
 
 
-class Layout(object):
+class Layout(dict):
     """
 
     .. code-block:: python
@@ -123,21 +122,17 @@ class Layout(object):
 
                               },
                     "id": "some.layout.id"}
-        layoutObj = Layout(layoutData)
+        layoutObj = Layout(**layoutData)
 
     """
 
-    def __init__(self, data):
+    def __init__(self, **kwargs):
         """
         :param data: The layout dict usually loaded from a json .mmlayout file
         :type data: dict
         """
-        self.data = data
-        self.id = data["id"]
+        super(Layout, self).__init__(**kwargs)
         self.solved = False
-
-    def __repr__(self):
-        return "Layout: {}".format(pprint.pformat(self.data))
 
     def __getitem__(self, item):
         """
@@ -148,14 +143,17 @@ class Layout(object):
         references another layout.
         :rtype: list or dict or str
         """
-        return self.data.get(item)
+        value = self.get(item)
+        if value is None:
+            return self.get("items", {})[item]
+        return value
 
     def __iter__(self):
         """Generator that loops the layout items
 
         :rtype: tuple(str, dict value)
         """
-        for name, data in iter(self.data.items()):
+        for name, data in iter(self["items"].items()):
             yield name, data
 
     def items(self):
@@ -183,7 +181,7 @@ class Layout(object):
         :return: The layout items dict
         :rtype: dict
         """
-        return self.data["items"].items()
+        return self["items"].items()
 
     def merge(self, layout):
         """Merges the layout items into this instance, only differences will be merged.
@@ -191,7 +189,7 @@ class Layout(object):
         :param layout: the layout to merge into the this class
         :type layout: :class:`Layout`
         """
-        self.data = general.merge(self.data, layout.data["items"])
+        self.data = general.merge(self, layout["items"])
         self.solve()
 
     def validate(self, layout=None):
@@ -215,7 +213,7 @@ class Layout(object):
             elif item == "generic":
                 failed.extend(self._validateGeneric(data))
             elif data.get("type", "") == "command":
-                command = LayoutRegistry().commandRegistry.getPlugin(data["id"])
+                command = Registry().commandRegistry.getPlugin(data["id"])
                 if not command:
                     failed.append(data)
             else:
@@ -237,7 +235,7 @@ class Layout(object):
             if commandType == "menu":
                 failed.extend(self._validateGeneric(item["children"]))
             elif commandType == "command":
-                command = LayoutRegistry().commandRegistry.getPlugin(item["id"])
+                command = Registry().commandRegistry.getPlugin(item["id"])
                 if not command:
                     failed.append(item)
             else:
@@ -255,9 +253,9 @@ class Layout(object):
         :return: Whether or not the layout was solved
         :rtype: bool
         """
-        registry = LayoutRegistry()
+        registry = Registry()
         solved = False
-        for item, data in self.data["items"].items():
+        for item, data in self["items"].items():
             if not data:
                 continue
             elif item == "generic":
@@ -269,7 +267,7 @@ class Layout(object):
                     logger.warning("No layout with the id {}, skipping".format(data))
                     continue
                 subLayout.solve()
-                self.data["items"][item] = subLayout
+                self["items"][item] = subLayout
                 solved = True
         self.solved = solved
         return solved
@@ -292,12 +290,12 @@ class MarkingMenu(object):
         :return: If the classid exists then the newly created marking menu class will be returned
         :rtype: :class:`MarkingMenu` or None
         """
-        registry = LayoutRegistry()
+        registry = Registry()
 
-        menuCls = registry.menuRegistry.loadPlugin(clsId, **{"layout": Layout({"id": clsId}),
+        menuCls = registry.menuRegistry.loadPlugin(clsId, **{"layout": Layout(**{"id": clsId}),
                                                              "name": clsId,
                                                              "parent": parent,
-                                                             "registry": LayoutRegistry()})
+                                                             "registry": Registry()})
         if not menuCls:
             return
         if cmds.popupMenu(parent, ex=True):
@@ -399,7 +397,8 @@ class MarkingMenu(object):
         if command is None:
             logger.warning("Failed To find Command: {}".format(item["id"]))
             return
-        cmdArgOverride = item.get("arguments", self.commandArguments)
+        cmdArgOverride = self.commandArguments
+        cmdArgOverride.update(item.get("arguments", {}))
         uiData = command.uiData(cmdArgOverride)
         optionBox = uiData.get("optionBox", False)
         iconPath = uiData.get("icon")
@@ -411,7 +410,7 @@ class MarkingMenu(object):
 
 
         arguments = dict(label=uiData["label"],  parent=parent,
-                         command=partial(command._execute, cmdArgOverride),
+                         command=partial(command._execute, cmdArgOverride, False),
                          optionBox=False,
                          image=iconPath
                          )
@@ -427,7 +426,7 @@ class MarkingMenu(object):
             cmds.menuItem(parent=parent,
                           optionBoxIcon=optionBoxIcon,
                           optionBox=optionBox,
-                          command=partial(command._execute, True, cmdArgOverride))
+                          command=partial(command._execute, cmdArgOverride, True))
 
     def _buildGeneric(self, data, menu):
         for item in data:
@@ -543,8 +542,12 @@ class MarkingMenu(object):
 
 
 class MarkingMenuCommand(plugin.Plugin):
+    # Specifying a Docstring for the class will act as the tooltip.
     documentation = __doc__
+    # a unique identifier for a class, once release to public domain this /
+    # id should never be changed due to being baked into the maya scene.
     id = ""
+    # The developers name must be specified so tracking who created it is easier.
     creator = "Zootools"
 
     @staticmethod
@@ -562,7 +565,19 @@ class MarkingMenuCommand(plugin.Plugin):
             self.execute(arguments)
 
     def execute(self, arguments):
+        """The execute method is called when triggering the action item. use executeUI() 
+        for a optionBox.
+
+        :type arguments: dict
+        """
         pass
 
     def executeUI(self, arguments):
+        """The executeUI method is called when the user triggering the box icon 
+        on the right handle side of the action item.
+
+        For this method to be called you must specify in the UIData method "optionBox": True.
+
+        :type arguments: dict
+        """
         pass

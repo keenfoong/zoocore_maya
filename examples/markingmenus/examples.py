@@ -31,7 +31,7 @@ class DynamicMMBySelectionExample(menu.MarkingMenu):
             items.append({"type": "command", "id": "printNodePath",
                           "arguments": {"node": i, "label": name}})
         # finally update the layout object
-        layout.data.update({"items": {"generic": items
+        layout.update({"items": {"generic": items
                                            }
                                  })
         # ensure the layout has been solved to contain our commands

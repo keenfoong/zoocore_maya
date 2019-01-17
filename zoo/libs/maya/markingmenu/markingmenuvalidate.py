@@ -49,7 +49,7 @@ def validateAndBuild(parentMenu, nodeName):
             return 0
         validLayout.solve()
 
-        mainMenu = menu.MarkingMenu(validLayout, "zooTriggerMenu", parentMenu, menu.LayoutRegistry())
+        mainMenu = menu.MarkingMenu(validLayout, "zooTriggerMenu", parentMenu, menu.Registry())
         mainMenu.attach(**{"nodes": map(om2.MObjectHandle, triggerNodes)})
     else:
         menu.MarkingMenu.buildDynamicMenu(commandStr, parent=parentMenu,
