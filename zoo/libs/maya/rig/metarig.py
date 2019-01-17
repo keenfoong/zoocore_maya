@@ -2,7 +2,6 @@ from zoo.libs.utils import general
 from maya.api import OpenMaya as om2
 
 from zoo.libs.maya.meta import base
-from zoo.libs.maya.api import attrtypes
 
 
 class MetaRigBase(base.MetaBase):

@@ -202,21 +202,11 @@ class MetaRegistry(object):
         :type paths: list(str)
         """
         for p in paths:
-            if len(p.split(".")) > 1:
-                importedModule = modules.importModule(p)
-
-                if importedModule is None:
-                    continue
-                p = os.path.realpath(importedModule.__file__)
-                if os.path.basename(p).startswith("__"):
-                    p = os.path.dirname(p)
-                elif p.endswith(".pyc"):
-                    p = p[:-1]
             if os.path.isdir(p):
                 cls.registerByPackage(p)
                 continue
             elif os.path.isfile(p):
-                importedModule = modules.importModule(p)
+                importedModule = modules.importModule(modules.asDottedPath(os.path.normpath(p)))
                 if importedModule:
                     cls.registerByModule(importedModule)
                     continue
@@ -229,8 +219,6 @@ class MetaRegistry(object):
         :param module: the module path to registry
         :type module: str
         """
-        if isinstance(module, basestring):
-            module = modules.importModule(module)
         if inspect.ismodule(module):
             for member in modules.iterMembers(module, predicate=inspect.isclass):
                 cls.registerMetaClass(member[1])
@@ -273,7 +261,7 @@ class MetaRegistry(object):
         :param classObj: the metaClass to registry
         :type classObj: Plugin
         """
-        if issubclass(classObj, MetaBase) or isinstance(classObj, MetaBase) and classObj.__name__ not in cls.types:
+        if (issubclass(classObj, MetaBase) or isinstance(classObj, MetaBase)) and classObj.__name__ not in cls.types:
             logger.debug("registering metaClass -> {}".format(classObj.__name__))
             cls.types[classObj.__name__] = classObj
 

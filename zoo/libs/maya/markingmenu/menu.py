@@ -397,7 +397,7 @@ class MarkingMenu(object):
         if command is None:
             logger.warning("Failed To find Command: {}".format(item["id"]))
             return
-        cmdArgOverride = self.commandArguments
+        cmdArgOverride = dict(**self.commandArguments)
         cmdArgOverride.update(item.get("arguments", {}))
         uiData = command.uiData(cmdArgOverride)
         optionBox = uiData.get("optionBox", False)

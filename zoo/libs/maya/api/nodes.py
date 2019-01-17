@@ -669,8 +669,8 @@ def getWorldMatrix(mobject):
 
 def decomposeMatrix(matrix, rotationOrder, space=om2.MSpace.kWorld):
     transformMat = om2.MTransformationMatrix(matrix)
-    rotation = transformMat.rotation()
-    rotation.reorderIt(rotationOrder)
+    transformMat.reorderRotation(rotationOrder)
+    rotation = transformMat.rotation(asQuaternion=(space == om2.MSpace.kWorld))
     return transformMat.translation(space), rotation, transformMat.scale(space)
 
 
@@ -1064,7 +1064,6 @@ def addAttribute(node, longName, shortName, attrType=attrtypes.kMFnNumericDouble
 
     attr.array = isArray
     if aobj is not None and apply:
-
         mod = om2.MDGModifier()
         mod.addAttribute(node, aobj)
         mod.doIt()
@@ -1136,7 +1135,8 @@ def serializeNode(node, skipAttributes=None, includeConnections=True, includeAtt
     attributes = []
     visited = []
     for pl in iterAttributes(node, skip=skipAttributes, includeAttributes=includeAttributes):
-        if (pl in visited or ((pl.isDefaultValue() and not pl.isConnected) or pl.isChild)) and not any(i in pl.name() for i in includeAttributes):
+        if (pl in visited or ((pl.isDefaultValue() and not pl.isConnected) or pl.isChild)) and not any(
+                i in pl.name() for i in includeAttributes):
             continue
         attrData = plugs.serializePlug(pl)
         if attrData:
