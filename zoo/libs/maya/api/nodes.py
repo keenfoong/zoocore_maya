@@ -1272,11 +1272,11 @@ def showHideAttributes(node, attributes, state=True):
     return True
 
 
-def mirrorJoint(node, parent, translate, rotate):
+def mirrorJoint(node, parent, translate, rotate, mirrorFunction=MIRROR_BEHAVIOUR):
     nFn = om2.MFnDependencyNode(node)
     rotateOrder = nFn.findPlug("rotateOrder", False).asInt()
     transMatRotateOrder = generic.intToMTransformRotationOrder(rotateOrder)
-    translation, rotMatrix = mirrorTransform(node, parent, translate, rotate)  # MVector, MMatrix
+    translation, rotMatrix = mirrorTransform(node, parent, translate, rotate, mirrorFunction)  # MVector, MMatrix
     jointOrder = om2.MEulerRotation(plugs.getPlugValue(nFn.findPlug("jointOrient", False)))
     # deal with joint orient
     jo = om2.MTransformationMatrix().setRotation(jointOrder).asMatrixInverse()
@@ -1317,7 +1317,7 @@ def mirrorTransform(node, parent, translate, rotate, mirrorFunction=MIRROR_BEHAV
     # mirror the rotation on a plane
     quat = transMat.rotation(asQuaternion=True)
     # behavior
-    if mirrorFunction == 0:
+    if mirrorFunction == MIRROR_BEHAVIOUR:
         if rotate == "xy":
             newQuat = om2.MQuaternion(quat.y * -1, quat.x, quat.w, quat.z * -1)
         elif rotate == "yz":
@@ -1345,8 +1345,8 @@ def mirrorTransform(node, parent, translate, rotate, mirrorFunction=MIRROR_BEHAV
     return translation, om2.MTransformationMatrix(rot).rotation(asQuaternion=True)
 
 
-def mirrorNode(node, parent, translate, rotate):
-    translation, quat = mirrorTransform(node, parent, translate, rotate)  # MVector, MMatrix
+def mirrorNode(node, parent, translate, rotate, mirrorFunction=MIRROR_BEHAVIOUR):
+    translation, quat = mirrorTransform(node, parent, translate, rotate, mirrorFunction)  # MVector, MMatrix
     setRotation(node, quat)
     setTranslation(node, translation)
 
