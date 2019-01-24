@@ -140,12 +140,22 @@ def setCurrentRange(start, end, newCurrentFrame):
 
 
 def formatFrameRange():
+    """Return's mayas current frame range as a format string.
+
+    :return: "0:100"  startframe:endFrame
+    :rtype: str
+    """
     info = currentTimeInfo()
     start, end = int(info["start"].value), int(info["end"].value)
     return ":".join([str(start), str(end)]) + "({})".format(end - start)
 
 
 def formatFrame():
+    """Returns the current frame rate as a formatted string.
+    
+    :return: "0:100(30 FPS)" startFrame:endFrame(FPS)
+    :rtype: str
+    """
     info = currentTimeInfo()
     start, end = int(info["start"].value), int(info["end"].value)
     return ":".join([str(start), str(end)]) + "({} FPS)".format(info["fps"])
