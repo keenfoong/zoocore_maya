@@ -1,6 +1,6 @@
 from functools import partial
 
-from qt import QtWidgets, QtCore, QtGui
+from qt import QtWidgets, QtGui
 
 from zoo.libs.pyqt import utils
 from zoo.libs.utils import colour
@@ -10,11 +10,15 @@ import shiboken2
 
 
 class ThemeInputWidget(QtWidgets.QWidget):
-    """todo:  Keen what is this for? can it be removed?  Key? what is key?
-    """
 
     def __init__(self, key=None, parent=None):
+        """ A generic input widget for the themes in preferences
+
+        :param key: The stylesheet pref key eg. "FRAMELESS_TITLELABEL_COLOR"
+        :param parent:
+        """
         super(ThemeInputWidget, self).__init__(parent=parent)
+
         self.key = key
 
     def data(self):
@@ -36,8 +40,8 @@ class ColorCmdsWidget(ThemeInputWidget):
 
         :param text: label name
         :type text: str
-        :param key: ?
-        :type key: ?
+        :param key: The stylesheet pref key eg. "FRAMELESS_TITLELABEL_COLOR"
+        :type key: basestring
         :param color: the start color of the color button in rbg 255 (255, 255, 255)
         :type color: tuple
         :param parent: the parent widegt
@@ -72,6 +76,7 @@ class ColorCmdsWidget(ThemeInputWidget):
         layout.addWidget(self.colorPicker, btnRatio)
         self.setLayout(layout)
         self.connections()
+        print ("test")
 
     def connections(self):
         self.colorPicker.clicked.connect(lambda: self.colorConnected(self.colorPicker))
@@ -107,6 +112,7 @@ class ColorCmdsWidget(ThemeInputWidget):
 
     def data(self):
         col = colour.RGBToHex(self.color)
+
         return {self.key: col}
 
 
@@ -136,7 +142,7 @@ def cmdsColorSlider(color=(0, 0, 1), parent=None, slider=False):
 
 
 def mayaWindowInQT(parent):
-    """Not working yet!
+    """ Not working yet!
 
     :param parent:
     :type parent:
@@ -177,7 +183,7 @@ def mayaWindowInQT(parent):
 
 
 def EmbedMayaColorSliderWindowExample():
-    """test code!!
+    """ test code!!
     Based on Example code from http://blog.virtualmethodstudio.com/2017/03/embed-maya-native-ui-objects-in-pyside2/
 
     """
@@ -209,6 +215,7 @@ def EmbedMayaColorSliderWindowExample():
     qtLayout.addWidget(colorSliderCmdsLayoutQt)
 
     window.show()
+
 
 def printColor(myColorSlider, *args):
     """ test code"""
