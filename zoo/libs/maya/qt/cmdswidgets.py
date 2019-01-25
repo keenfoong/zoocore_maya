@@ -76,7 +76,6 @@ class ColorCmdsWidget(ThemeInputWidget):
         layout.addWidget(self.colorPicker, btnRatio)
         self.setLayout(layout)
         self.connections()
-        print ("test")
 
     def connections(self):
         self.colorPicker.clicked.connect(lambda: self.colorConnected(self.colorPicker))
