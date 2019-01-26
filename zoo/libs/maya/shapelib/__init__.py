@@ -43,8 +43,8 @@ def loadFromLib(shapeName, parent=None):
         name = os.path.splitext(f)[0]
         if name == shapeName:
             data = filesystem.loadJson(os.path.join(os.path.normpath(lib), f))
-            if parent is not None and data:
-                return curves.createCurveShape(parent, data)
+            if data:
+                return data
     raise ValueError("The shape name '{}' doesn't exist in the library".format(shapeName))
 
 
@@ -60,9 +60,7 @@ def loadAndCreateFromLib(shapeName, parent=None):
     :rtype: tuple(MObject, list(MObject))
     """
     newData = loadFromLib(shapeName, parent)
-    if parent is None:
-        return curves.createCurveShape(parent, newData)
-    return newData
+    return curves.createCurveShape(parent, newData)
 
 
 def saveToLib(node, name, override=True):

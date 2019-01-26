@@ -397,16 +397,16 @@ class MarkingMenu(object):
         if command is None:
             logger.warning("Failed To find Command: {}".format(item["id"]))
             return
-        cmdArgOverride = self.commandArguments
+        cmdArgOverride = dict(**self.commandArguments)
         cmdArgOverride.update(item.get("arguments", {}))
         uiData = command.uiData(cmdArgOverride)
         optionBox = uiData.get("optionBox", False)
         iconPath = uiData.get("icon")
-        iconOptionBox = uiData.get("optionBoxIcon")
+        iconOptionBox = uiData.get("optionBoxIcon", "")
         if iconPath:
             iconPath = iconlib.iconPathForName(iconPath)
         if iconOptionBox:
-            optionBoxIcon = iconlib.iconPathForName(iconOptionBox)
+            iconOptionBox = iconlib.iconPathForName(iconOptionBox)
 
 
         arguments = dict(label=uiData["label"],  parent=parent,
@@ -423,10 +423,11 @@ class MarkingMenu(object):
 
         cmds.menuItem(**arguments)
         if optionBox:
-            cmds.menuItem(parent=parent,
-                          optionBoxIcon=optionBoxIcon,
-                          optionBox=optionBox,
-                          command=partial(command._execute, cmdArgOverride, True))
+            if os.path.exists(iconOptionBox):
+                arguments["optionBoxIcon"] = iconOptionBox
+            arguments.update(dict(optionBox=optionBox,
+                                  command=partial(command._execute, cmdArgOverride, True)))
+            cmds.menuItem(**arguments)
 
     def _buildGeneric(self, data, menu):
         for item in data:
