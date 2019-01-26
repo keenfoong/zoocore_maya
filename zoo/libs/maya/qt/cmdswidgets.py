@@ -1,12 +1,8 @@
-from functools import partial
-
 from qt import QtWidgets, QtGui
 
 from zoo.libs.pyqt import utils
 from zoo.libs.utils import colour
 import maya.cmds as cmds
-import maya.OpenMayaUI as mui
-import shiboken2
 
 
 class ThemeInputWidget(QtWidgets.QWidget):
@@ -100,7 +96,7 @@ class ColorCmdsWidget(ThemeInputWidget):
         posY = pos.y() + utils.dpiScale(-130)
         linearColorResult = cmds.colorEditor(mini=False, position=[posX, posY], rgbValue=rgb[:3])
         linearColorResult = linearColorResult.strip().replace("  ", " ").split(" ")
-        linearColorResult = [float(i) for i in linearColorResult]
+        linearColorResult = map(float, linearColorResult)
         rgbColorResult = colour.convertColorLinearToSrgb(linearColorResult)  # color is 0-1 float style
         self.setColor(colour.rgbFloatToInt(rgbColorResult))  # expects 255 color style
 
@@ -113,112 +109,3 @@ class ColorCmdsWidget(ThemeInputWidget):
         col = colour.RGBToHex(self.color)
 
         return {self.key: col}
-
-
-def cmdsColorSlider(color=(0, 0, 1), parent=None, slider=False):
-    """Not Working!!
-    Based on Example code from http://blog.virtualmethodstudio.com/2017/03/embed-maya-native-ui-objects-in-pyside2/
-
-    """
-    # We have our Qt Layout where we want to insert, say, a Maya viewport
-    colorSliderLayout = QtWidgets.QVBoxLayout(parent)
-    # We set a qt object name for this layout.
-    colorSliderLayout.setObjectName('colorSliderLayout22')
-
-    # We set the given layout as parent to carry on creating Maya UI using Maya.cmds and create the paneLayout under it.
-    layout = mui.MQtUtil.fullName(long(shiboken2.getCppPointer(colorSliderLayout)[0]))  # gets the full path as str
-    # todo: issue is here, can't find the layout name with Zoo UIs
-    print "full layout name", layout
-    cmds.setParent(layout)
-    colorSliderCmds = cmds.colorSliderGrp(label='', rgb=color, columnWidth3=(0, 60, 0))
-    # Find a pointer to the colorSliderCmds that we just created using Maya API
-    ptr = mui.MQtUtil.findControl(colorSliderCmds)
-    # Wrap the pointer into a python QObject. Note that with PyQt QObject is needed. In Shiboken we use QWidget.
-    colorSliderCmdsLayoutQt = shiboken2.wrapInstance(long(ptr), QtWidgets.QWidget)
-    # Now that we have a QtWidget, we add it to our Qt layout
-    colorSliderLayout.addWidget(colorSliderCmdsLayoutQt)
-    return colorSliderLayout
-
-
-def mayaWindowInQT(parent):
-    """ Not working yet!
-
-    :param parent:
-    :type parent:
-    :return:
-    :rtype:
-    """
-    verticalLayout = QtWidgets.QVBoxLayout(parent)
-    verticalLayout.setContentsMargins(0, 0, 0, 0)
-
-    # need to set a name so it can be referenced by maya node path
-    verticalLayout.setObjectName("mainLayout")
-
-    # First use SIP to unwrap the layout into a pointer
-    # Then get the full path to the UI in maya as a string
-    layout = mui.MQtUtil.fullName(long(shiboken2.getCppPointer(verticalLayout)[0]))
-    cmds.setParent(layout)
-
-    paneLayoutName = cmds.paneLayout()
-
-    # Find a pointer to the paneLayout that we just created
-    ptr = mui.MQtUtil.findControl(paneLayoutName)
-
-    # Wrap the pointer into a python QObject
-    paneLayout = shiboken2.wrapInstance(long(ptr), QtWidgets.QWidget)
-
-    cameraName = cmds.camera()[0]
-    modelPanelName = cmds.modelPanel("customModelPanelXX", label="ModelPanel Test 22", cam=cameraName)
-
-    # Find a pointer to the modelPanel that we just created
-    ptr = mui.MQtUtil.findControl(modelPanelName)
-
-    # Wrap the pointer into a python QObject
-    modelPanel = shiboken2.wrapInstance(long(ptr), QtWidgets.QWidget)
-
-    # add our QObject reference to the paneLayout to our layout
-    verticalLayout.addWidget(paneLayout)
-    return verticalLayout
-
-
-def EmbedMayaColorSliderWindowExample():
-    """ test code!!
-    Based on Example code from http://blog.virtualmethodstudio.com/2017/03/embed-maya-native-ui-objects-in-pyside2/
-
-    """
-    # We create a simple window with a QWidget
-    window = QtWidgets.QWidget()
-    window.resize(100, 100)
-    # We have our Qt Layout where we want to insert, say, a Maya viewport
-    qtLayout = QtWidgets.QVBoxLayout(window)
-    # We set a qt object name for this layout.
-    qtLayout.setObjectName('viewportLayout')
-
-    # We set the given layout as parent to carry on creating Maya UI using Maya.cmds and create the paneLayout under it.
-    cmds.setParent('viewportLayout')
-
-    colorSliderCmds = cmds.colorSliderGrp(label='Blue', rgb=(0, 0, 1))
-    cmds.colorSliderGrp(colorSliderCmds, edit=True, columnWidth3=(0, 60, 0),
-                        cc=partial(printColor, colorSliderCmds))
-
-    # Create the model panel. I use # to generate a new panel with no conflicting name
-    # modelPanelName = cmds.modelPanel("embeddedModelPanel#", cam='persp')
-
-    # Find a pointer to the colorSliderCmds that we just created using Maya API
-    ptr = mui.MQtUtil.findControl(colorSliderCmds)
-
-    # Wrap the pointer into a python QObject. Note that with PyQt QObject is needed. In Shiboken we use QWidget.
-    colorSliderCmdsLayoutQt = shiboken2.wrapInstance(long(ptr), QtWidgets.QWidget)
-
-    # Now that we have a QtWidget, we add it to our Qt layout
-    qtLayout.addWidget(colorSliderCmdsLayoutQt)
-
-    window.show()
-
-
-def printColor(myColorSlider, *args):
-    """ test code"""
-    colorValue = cmds.colorSliderGrp(myColorSlider, q=True, rgb=True)
-    print colorValue
-
-
