@@ -834,14 +834,7 @@ def setPlugInfoFromDict(plug, **kwargs):
     softMax = kwargs.get("softMax")
     value = kwargs.get("value")
     Type = kwargs.get("Type")
-    if min is not None:
-        setMin(plug, min)
-    if max is not None:
-        setMax(plug, max)
-    if softMin is not None:
-        setSoftMin(plug, softMin)
-    if softMax is not None:
-        setSoftMax(plug, softMax)
+
     # certain data types require casting i.e MDistance
     if default is not None and Type is not None:
         if Type == attrtypes.kMFnDataString:
@@ -862,7 +855,14 @@ def setPlugInfoFromDict(plug, **kwargs):
     if value is not None and not plug.attribute().hasFn(om2.MFn.kMessageAttribute) and not plug.isCompound and not \
             plug.isArray:
         setPlugValue(plug, value)
-
+    if min is not None:
+        setMin(plug, min)
+    if max is not None:
+        setMax(plug, max)
+    if softMin is not None:
+        setSoftMin(plug, softMin)
+    if softMax is not None:
+        setSoftMax(plug, softMax)
     plug.isChannelBox = kwargs.get("channelBox", False)
     plug.isKeyable = kwargs.get("keyable", False)
     plug.isLocked = kwargs.get("locked", False)
