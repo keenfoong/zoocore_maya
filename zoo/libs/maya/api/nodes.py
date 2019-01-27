@@ -848,9 +848,8 @@ def addCompoundAttribute(node, longName, shortName, attrMap, isArray=False, **kw
     mod = om2.MDGModifier()
     mod.addAttribute(node, compObj)
     mod.doIt()
+    kwargs["children"] = attrMap
     plugs.setPlugInfoFromDict(om2.MPlug(node, compObj), **kwargs)
-    for data, plug in zip(attrMap, children):
-        plugs.setPlugInfoFromDict(plug, **data)
 
     return compound
 
