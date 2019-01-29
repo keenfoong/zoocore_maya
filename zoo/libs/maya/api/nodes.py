@@ -498,15 +498,17 @@ def getChildren(mObject, recursive=False, filter=(om2.MFn.kTransform,)):
     return tuple(iterChildren(mObject, recursive, filter))
 
 
-def iterAttributes(node, skip=None):
+def iterAttributes(node, skip=None, includeAttributes=()):
+    skip = skip or ()
     dep = om2.MFnDependencyNode(node)
     for idx in xrange(dep.attributeCount()):
         attr = dep.attribute(idx)
         plug = om2.MPlug(node, attr)
         name = plug.name()
-        if skip and any(i in name for i in skip):
+
+        if any(i in name for i in skip) and not any(i in name for i in includeAttributes):
             continue
-        if "]" in name or plug.isChild:
+        elif plug.isElement or plug.isChild:
             continue
         for child in plugs.iterChildren(plug):
             yield child
@@ -630,9 +632,13 @@ def delete(node):
     mod.doIt()
 
 
-def getOffsetMatrix(startObj, endObj):
-    start = getWorldMatrix(startObj)
-    end = getWorldMatrix(endObj)
+def getOffsetMatrix(startObj, endObj, space=om2.MFn.kWorld):
+    if space == om2.MFn.kWorld:
+        start = getWorldMatrix(startObj)
+        end = getWorldMatrix(endObj)
+    else:
+        start = getMatrix(startObj)
+        end = getMatrix(endObj)
     mOutputMatrix = end * start.inverse()
     return mOutputMatrix
 
@@ -663,8 +669,8 @@ def getWorldMatrix(mobject):
 
 def decomposeMatrix(matrix, rotationOrder, space=om2.MSpace.kWorld):
     transformMat = om2.MTransformationMatrix(matrix)
-    rotation = transformMat.rotation()
-    rotation.reorderIt(rotationOrder)
+    transformMat.reorderRotation(rotationOrder)
+    rotation = transformMat.rotation(asQuaternion=(space == om2.MSpace.kWorld))
     return transformMat.translation(space), rotation, transformMat.scale(space)
 
 
@@ -842,9 +848,8 @@ def addCompoundAttribute(node, longName, shortName, attrMap, isArray=False, **kw
     mod = om2.MDGModifier()
     mod.addAttribute(node, compObj)
     mod.doIt()
+    kwargs["children"] = attrMap
     plugs.setPlugInfoFromDict(om2.MPlug(node, compObj), **kwargs)
-    for data, plug in zip(attrMap, children):
-        plugs.setPlugInfoFromDict(plug, **data)
 
     return compound
 
@@ -925,7 +930,7 @@ def addAttribute(node, longName, shortName, attrType=attrtypes.kMFnNumericDouble
                                  keyable=True, channelBox=False)
         # double angle
         attrMobj = addAttribute(myNode, "myEnum", "myEnum", attrType=attrtypes.kMFnkEnumAttribute,
-                                 keyable=True, channelBox=True, fields=["one", "two", "three"])
+                                 keyable=True, channelBox=True, enums=["one", "two", "three"])
 
 
     """
@@ -963,7 +968,7 @@ def addAttribute(node, longName, shortName, attrType=attrtypes.kMFnNumericDouble
     elif attrType == attrtypes.kMFnkEnumAttribute:
         attr = om2.MFnEnumAttribute()
         aobj = attr.create(longName, shortName)
-        fields = kwargs.get("fields")
+        fields = kwargs.get("enums")
         if fields is not None:
             for index in xrange(len(fields)):
                 attr.addField(fields[index], index)
@@ -1058,7 +1063,6 @@ def addAttribute(node, longName, shortName, attrType=attrtypes.kMFnNumericDouble
 
     attr.array = isArray
     if aobj is not None and apply:
-
         mod = om2.MDGModifier()
         mod.addAttribute(node, aobj)
         mod.doIt()
@@ -1068,7 +1072,7 @@ def addAttribute(node, longName, shortName, attrType=attrtypes.kMFnNumericDouble
     return attr
 
 
-def serializeNode(node, skipAttributes=None, includeConnections=True):
+def serializeNode(node, skipAttributes=None, includeConnections=True, includeAttributes=()):
     """This function takes an om2.MObject representing a maya node and serializes it into a dict,
     This iterates through all attributes, serializing any extra attributes found, any default attribute has not changed
     (defaultValue) and not connected or is an array attribute will be skipped.
@@ -1129,8 +1133,9 @@ def serializeNode(node, skipAttributes=None, includeConnections=True):
         data["parent"] = om2.MFnDagNode(dep.parent(0)).fullPathName()
     attributes = []
     visited = []
-    for pl in iterAttributes(node, skip=skipAttributes):
-        if pl in visited or (pl.isDefaultValue() and not pl.isConnected) or pl.isChild:
+    for pl in iterAttributes(node, skip=skipAttributes, includeAttributes=includeAttributes):
+        if (pl in visited or ((pl.isDefaultValue() and not pl.isConnected) or pl.isChild)) and not any(
+                i in pl.name() for i in includeAttributes):
             continue
         attrData = plugs.serializePlug(pl)
         if attrData:
@@ -1266,11 +1271,11 @@ def showHideAttributes(node, attributes, state=True):
     return True
 
 
-def mirrorJoint(node, parent, translate, rotate):
+def mirrorJoint(node, parent, translate, rotate, mirrorFunction=MIRROR_BEHAVIOUR):
     nFn = om2.MFnDependencyNode(node)
     rotateOrder = nFn.findPlug("rotateOrder", False).asInt()
     transMatRotateOrder = generic.intToMTransformRotationOrder(rotateOrder)
-    translation, rotMatrix = mirrorTransform(node, parent, translate, rotate)  # MVector, MMatrix
+    translation, rotMatrix = mirrorTransform(node, parent, translate, rotate, mirrorFunction)  # MVector, MMatrix
     jointOrder = om2.MEulerRotation(plugs.getPlugValue(nFn.findPlug("jointOrient", False)))
     # deal with joint orient
     jo = om2.MTransformationMatrix().setRotation(jointOrder).asMatrixInverse()
@@ -1311,7 +1316,7 @@ def mirrorTransform(node, parent, translate, rotate, mirrorFunction=MIRROR_BEHAV
     # mirror the rotation on a plane
     quat = transMat.rotation(asQuaternion=True)
     # behavior
-    if mirrorFunction == 0:
+    if mirrorFunction == MIRROR_BEHAVIOUR:
         if rotate == "xy":
             newQuat = om2.MQuaternion(quat.y * -1, quat.x, quat.w, quat.z * -1)
         elif rotate == "yz":
@@ -1339,8 +1344,8 @@ def mirrorTransform(node, parent, translate, rotate, mirrorFunction=MIRROR_BEHAV
     return translation, om2.MTransformationMatrix(rot).rotation(asQuaternion=True)
 
 
-def mirrorNode(node, parent, translate, rotate):
-    translation, quat = mirrorTransform(node, parent, translate, rotate)  # MVector, MMatrix
+def mirrorNode(node, parent, translate, rotate, mirrorFunction=MIRROR_BEHAVIOUR):
+    translation, quat = mirrorTransform(node, parent, translate, rotate, mirrorFunction)  # MVector, MMatrix
     setRotation(node, quat)
     setTranslation(node, translation)
 

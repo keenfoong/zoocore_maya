@@ -1,6 +1,21 @@
 from maya.api import OpenMaya as om2
 
 
+class MCallbackIdWrapper(object):
+    """Wrapper class to handle cleaning up of MCallbackIds from registered MMessage
+    """
+
+    def __init__(self, callbackId):
+        super(MCallbackIdWrapper, self).__init__()
+        self.callbackId = callbackId
+
+    def __del__(self):
+        om2.MMessage.removeCallback(self.callbackId)
+
+    def __repr__(self):
+        return 'MCallbackIdWrapper(%r)' % self.callbackId
+
+
 def removeCallbacksFromNode(mobject):
     """
     :param mobject: The node to remote all node callbacks from

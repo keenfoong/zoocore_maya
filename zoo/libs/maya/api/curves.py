@@ -149,11 +149,11 @@ def mirrorCurveCvs(curveObj, axis="x", space=None):
     shapes = nodes.shapes(om2.MFnDagNode(curveObj).getPath())
     for shape in shapes:
         curve = om2.MFnNurbsCurve(shape)
-        cvs = curve.getCVs(space=space)
+        cvs = curve.cvPositions(space=space)
         # invert the cvs MPoints based on the axis
-        for i in range(len(cvs)):
-            cvs[i][axis] *= -1
-        curve.setCvPositions(cvs)
+        for i in cvs:
+            i[axis] *= -1
+        curve.setCVPositions(cvs)
         curve.updateCurve()
 
 
