@@ -2,7 +2,10 @@ import copy
 import re
 from maya.api import OpenMaya as om2
 from zoo.libs.maya.api import attrtypes
+from zoo.libs.utils import zlogging
 import contextlib
+
+logger = zlogging.zooLogger
 
 AXIS = ("X", "Y", "Z")
 
@@ -130,29 +133,61 @@ def removeElementPlug(plug, elementNumber, mod=None, apply=False):
     :param apply: If False then mod.doIt() will not be called, it is the clients reponsiblity to call doIt,
                 useful for batch operations.
     :type apply: bool
-    :return:
+    :return: The MDGModifier instance which contains the operation stack.
     :rtype: om2.MDGModifier
     """
-    mod = mod or om2.MDGModifier()
-    if elementNumber in range(plug.evaluateNumElements()):
-        mod.removeMultiInstance(plug.elementByLogicalIndex(elementNumber), False)
-    if apply:
-        mod.doIt()
+    # keep the compound plug unlocked for elements to be deleted
+    with setLockedContext(plug):
+        mod = mod or om2.MDGModifier()
+        # make sure the client has passed an invalid elementIndex.
+        if elementNumber in plug.getExistingArrayAttributeIndices():
+            # add the op to the stack and let maya handle connections for us.
+            mod.removeMultiInstance(plug.elementByLogicalIndex(elementNumber), True)
+        # allow the user to batch delete elements if apply is False, this is more efficient.
+        if apply:
+            try:
+                mod.doIt()
+            except RuntimeError:
+                logger.error("Failed to remove element: {} from plug: {}".format(str(elementNumber), plug.name()),
+                             exc_info=True)
+                raise
     return mod
 
 
 def removeUnConnectedEmptyElements(plugArray, mod=None):
+    """Removes all unconnected array plug elements.
+
+    This works by iterating through all plug elements and checking the isConnected flag, if
+    the element plug is a compound then we can the children too.
+
+    :note: currently one handles two dimensional arrays
+    ie.
+        |- element_compound
+            |- child
+
+
+    :param plugArray: The plug array instance
+    :type plugArray: om2.MPlug
+    :param mod: If passed then this modifier will be used instead of creating a new one
+    :type mod: om2.MDGModfier or None
+    :return: The MDGModifier instance, if one is passed in the mod argument then that will be \
+    returned.
+    :rtype: om2.MDGModifier
+    """
     mod = mod or om2.MDGModifier()
-    for i in xrange(plugArray.evaluateNumElements()):
-        element = plugArray.elementByPhysicalIndex(i)
-        if element.isCompound:
+    # separate out the logic so we reduce one condition per iteration.
+    # an array can't be both a compound and singleton so handle them separately
+    if plugArray.isCompound:
+        for element in plugArray.getExistingArrayAttributeIndices():
             for childI in xrange(element.numChildren()):
                 if element.child(childI).isConnected:
                     break
-            else:
-                mod.removeMultiInstance(element, False)
-        elif not element.isConnected:
-            mod.removeMultiInstance(element, False)
+        else:
+            mod.removeMultiInstance(element, True)
+    else:
+        for element in plugArray.getExistingArrayAttributeIndices():
+            if not element.isConnected:
+                mod.removeMultiInstance(element, True)
     mod.doIt()
     return mod
 
@@ -851,7 +886,12 @@ def setPlugInfoFromDict(plug, **kwargs):
         elif Type == attrtypes.kMFnUnitAttributeTime:
             default = om2.MTime(default)
             value = om2.MTime(value)
-        setPlugDefault(plug, default)
+        try:
+            setPlugDefault(plug, default)
+        except Exception:
+            logger.error("Failed to set plug default values: {}".format(plug.name()),
+                         exc_info=True,
+                         extra={"data": default})
     if value is not None and not plug.attribute().hasFn(om2.MFn.kMessageAttribute) and not plug.isCompound and not \
             plug.isArray:
         setPlugValue(plug, value)
