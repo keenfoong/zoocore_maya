@@ -105,6 +105,17 @@ class ColorCmdsWidget(ThemeInputWidget):
         self.colorPicker.setStyleSheet("QPushButton {0} background-color: rgb{2} {1}".format("{", "}", color))
         self.color = color
 
+    def rgbColor(self):
+        """returns rgb tuple with 0-255 ranges Eg (128, 255, 12)
+        """
+        return self.color
+
+    def rgbColorFloat(self):
+        """returns rgb tuple with 0-1.0 float ranges Eg (1.0, .5, .6666)
+        """
+        return tuple(float(i)/255 for i in self.color)
+
+
     def data(self):
         col = colour.RGBToHex(self.color)
 
