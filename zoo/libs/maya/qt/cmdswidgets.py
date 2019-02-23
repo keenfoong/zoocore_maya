@@ -38,7 +38,7 @@ class ColorCmdsWidget(ThemeInputWidget):
         :type text: str
         :param key: The stylesheet pref key eg. "FRAMELESS_TITLELABEL_COLOR"
         :type key: basestring
-        :param color: the start color of the color button in rbg 255 (255, 255, 255)
+        :param color: the start color of the color button in rbg 255 (255, 255, 255) Color is srgb not linear
         :type color: tuple
         :param parent: the parent widegt
         :type parent: QtWidget
@@ -79,10 +79,11 @@ class ColorCmdsWidget(ThemeInputWidget):
     def colorConnected(self, widget):
         # todo: the window position should compensate if on the edge of the screen.
         pos = QtGui.QCursor.pos()
-        rgb = colour.rgbIntToFloat(self.color)
+        srgb = colour.rgbIntToFloat(self.color)
+        linearRgb = colour.convertColorSrgbToLinear(srgb)
         posX = pos.x() + utils.dpiScale(-220)
         posY = pos.y() + utils.dpiScale(-130)
-        linearColorResult = cmds.colorEditor(mini=True, position=[posX, posY], rgbValue=rgb[:3])
+        linearColorResult = cmds.colorEditor(mini=True, position=[posX, posY], rgbValue=linearRgb[:3])
         linearColorResult = linearColorResult.strip().replace("  ", " ").split(" ")
         linearColorResult = [float(i) for i in linearColorResult]
         rgbColorResult = colour.convertColorLinearToSrgb(linearColorResult)  # color is 0-1 float style
