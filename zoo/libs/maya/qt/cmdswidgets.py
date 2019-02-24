@@ -23,12 +23,11 @@ class ThemeInputWidget(QtWidgets.QWidget):
 
 class ColorCmdsWidget(ThemeInputWidget):
     """Adds a maya color picker to a pyside colored button. With cmds.colorEditor
-    This color picker locks Maya until the mini window or window is closed, then it updates.  WOuld be great if it
+    This color picker locks Maya until the mini window or window is closed, then it updates.  Would be great if it
     did it on click rather than on close window.
     It's probably preferable to use a cmds.colorSliderGrp, however it is not working yet, see other classes
     cmds.colorSliderGrp will update on any click of the color UI, not only on close
     # todo: should make double click open the full (not mini) color picker.
-
     """
     def __init__(self, text="", key=None, color=(255, 255, 255), parent=None, toolTip="", labelRatio=1, btnRatio=1,
                  setFixedWidth=50, spacing=5):
@@ -102,7 +101,8 @@ class ColorCmdsWidget(ThemeInputWidget):
         self.setColor(colour.rgbFloatToInt(rgbColorResult))  # expects 255 color style
 
     def setColor(self, color):
-        # self.colorPicker.setStyleSheet("background-color: rgb{}; border: 0px solid darkgrey; border-radius: 0px".format(color))
+        # self.colorPicker.setStyleSheet("background-color: rgb{}; border: 0px solid darkgrey;
+        # border-radius: 0px".format(color))
         self.colorPicker.setStyleSheet("QPushButton {0} background-color: rgb{2} {1}".format("{", "}", color))
         self.color = color
 
