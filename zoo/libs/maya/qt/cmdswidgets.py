@@ -23,12 +23,11 @@ class ThemeInputWidget(QtWidgets.QWidget):
 
 class ColorCmdsWidget(ThemeInputWidget):
     """Adds a maya color picker to a pyside colored button. With cmds.colorEditor
-    This color picker locks Maya until the mini window or window is closed, then it updates.  WOuld be great if it
+    This color picker locks Maya until the mini window or window is closed, then it updates.  Would be great if it
     did it on click rather than on close window.
     It's probably preferable to use a cmds.colorSliderGrp, however it is not working yet, see other classes
     cmds.colorSliderGrp will update on any click of the color UI, not only on close
     # todo: should make double click open the full (not mini) color picker.
-
     """
     def __init__(self, text="", key=None, color=(255, 255, 255), parent=None, toolTip="", labelRatio=1, btnRatio=1,
                  setFixedWidth=50, spacing=5):
@@ -38,7 +37,7 @@ class ColorCmdsWidget(ThemeInputWidget):
         :type text: str
         :param key: The stylesheet pref key eg. "FRAMELESS_TITLELABEL_COLOR"
         :type key: basestring
-        :param color: the start color of the color button in rbg 255 (255, 255, 255)
+        :param color: the start color of the color button in rbg 255 (255, 255, 255) Color is srgb not linear
         :type color: tuple
         :param parent: the parent widegt
         :type parent: QtWidget
@@ -79,10 +78,11 @@ class ColorCmdsWidget(ThemeInputWidget):
     def colorConnected(self, widget):
         # todo: the window position should compensate if on the edge of the screen.
         pos = QtGui.QCursor.pos()
-        rgb = colour.rgbIntToFloat(self.color)
+        srgb = colour.rgbIntToFloat(self.color)
+        linearRgb = colour.convertColorSrgbToLinear(srgb)
         posX = pos.x() + utils.dpiScale(-220)
         posY = pos.y() + utils.dpiScale(-130)
-        linearColorResult = cmds.colorEditor(mini=True, position=[posX, posY], rgbValue=rgb[:3])
+        linearColorResult = cmds.colorEditor(mini=True, position=[posX, posY], rgbValue=linearRgb[:3])
         linearColorResult = linearColorResult.strip().replace("  ", " ").split(" ")
         linearColorResult = [float(i) for i in linearColorResult]
         rgbColorResult = colour.convertColorLinearToSrgb(linearColorResult)  # color is 0-1 float style
@@ -101,7 +101,8 @@ class ColorCmdsWidget(ThemeInputWidget):
         self.setColor(colour.rgbFloatToInt(rgbColorResult))  # expects 255 color style
 
     def setColor(self, color):
-        # self.colorPicker.setStyleSheet("background-color: rgb{}; border: 0px solid darkgrey; border-radius: 0px".format(color))
+        # self.colorPicker.setStyleSheet("background-color: rgb{}; border: 0px solid darkgrey;
+        # border-radius: 0px".format(color))
         self.colorPicker.setStyleSheet("QPushButton {0} background-color: rgb{2} {1}".format("{", "}", color))
         self.color = color
 
