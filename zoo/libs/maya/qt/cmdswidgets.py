@@ -77,9 +77,14 @@ class ColorCmdsWidget(ThemeInputWidget):
         self.connections()
 
     def text(self):
-        """returns the label name"""
+        """returns the label name as a string
+
+        :return labelName: the text name of the label
+        :rtype labelName: str
+        """
         if self.label:
             return self.label.text()
+        return ""
 
     def connections(self):
         self.colorPicker.clicked.connect(lambda: self.colorConnected(self.colorPicker))
