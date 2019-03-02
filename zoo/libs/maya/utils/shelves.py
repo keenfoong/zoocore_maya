@@ -51,11 +51,23 @@ class Shelf(object):
         """Adds a sub menu item with the specified label and icon to the specified parent popup menu."""
         return cmds.menuItem(parent=parent, label=label, icon=icon or "", subMenu=1)
 
-    def addSeparator(self, parent):
+    @staticmethod
+    def addMenuSeparator(parent, **kwargs):
+        """Adds a separator(line) on the parent menu.
+
+        This uses the cmds.menuItem to create the separator
+
+        :param parent: The full UI path to the parent menu
+        :type parent: str
+        """
+        arguments = dict(parent=parent,
+                         divider=True)
+        arguments.update(kwargs)
+        cmds.menuItem(**arguments)
+
+    def addSeparator(self):
         """ Adds a maya shelf separator to the parent shelf
 
-        :param parent: The full path to the shelf
-        :type parent: str
         :return: The full path to the separator
         :rtype: str
         """
