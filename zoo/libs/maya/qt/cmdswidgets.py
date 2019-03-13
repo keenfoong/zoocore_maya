@@ -1,4 +1,4 @@
-from qt import QtWidgets, QtGui
+from qt import QtCore, QtWidgets, QtGui
 
 from zoo.libs.pyqt import utils
 from zoo.libs.utils import colour
@@ -29,6 +29,8 @@ class ColorCmdsWidget(ThemeInputWidget):
     cmds.colorSliderGrp will update on any click of the color UI, not only on close
     # todo: should make double click open the full (not mini) color picker.
     """
+    colorChanged = QtCore.Signal()
+
     def __init__(self, text="", key=None, color=(255, 255, 255), parent=None, toolTip="", labelRatio=1, btnRatio=1,
                  setFixedWidth=50, spacing=5):
         """Adds a maya color picker to a pyside label and colored button. Uses cmds.colorEditor which locks Maya
@@ -58,6 +60,8 @@ class ColorCmdsWidget(ThemeInputWidget):
         self.color = color
         if text:
             self.label = QtWidgets.QLabel(parent=self, text=text)
+        else:
+            self.label = None
         layout = utils.hBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         self.setColor(self.color)
@@ -71,6 +75,16 @@ class ColorCmdsWidget(ThemeInputWidget):
         layout.addWidget(self.colorPicker, btnRatio)
         self.setLayout(layout)
         self.connections()
+
+    def text(self):
+        """returns the label name as a string
+
+        :return labelName: the text name of the label
+        :rtype labelName: str
+        """
+        if self.label:
+            return self.label.text()
+        return ""
 
     def connections(self):
         self.colorPicker.clicked.connect(lambda: self.colorConnected(self.colorPicker))
@@ -101,10 +115,13 @@ class ColorCmdsWidget(ThemeInputWidget):
         self.setColor(colour.rgbFloatToInt(rgbColorResult))  # expects 255 color style
 
     def setColor(self, color):
+        """Sets color, requires rgb color 255"""
+        # todo: stylesheet add border options
         # self.colorPicker.setStyleSheet("background-color: rgb{}; border: 0px solid darkgrey;
         # border-radius: 0px".format(color))
         self.colorPicker.setStyleSheet("QPushButton {0} background-color: rgb{2} {1}".format("{", "}", color))
         self.color = color
+        self.colorChanged.emit()
 
     def rgbColor(self):
         """returns rgb tuple with 0-255 ranges Eg (128, 255, 12)
@@ -116,6 +133,9 @@ class ColorCmdsWidget(ThemeInputWidget):
         """
         return tuple(float(i)/255 for i in self.color)
 
+    def hexColor(self):
+        """Returns hex color (6 letters) of the current color"""
+        return colour.hexToRGB(self.color)
 
     def data(self):
         col = colour.RGBToHex(self.color)
