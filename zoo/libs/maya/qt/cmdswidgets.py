@@ -6,7 +6,6 @@ import maya.cmds as cmds
 
 
 class ThemeInputWidget(QtWidgets.QWidget):
-
     def __init__(self, key=None, parent=None):
         """ A generic input widget for the themes in preferences
 
@@ -119,9 +118,17 @@ class ColorCmdsWidget(ThemeInputWidget):
         # todo: stylesheet add border options
         # self.colorPicker.setStyleSheet("background-color: rgb{}; border: 0px solid darkgrey;
         # border-radius: 0px".format(color))
-        self.colorPicker.setStyleSheet("QPushButton {0} background-color: rgb{2} {1}".format("{", "}", color))
-        self.color = color
+        self.color = colour.rgbIntRound(color)
+        self.colorPicker.setStyleSheet("QPushButton {0} background-color: rgb{2} {1}".format("{", "}", self.color))
         self.colorChanged.emit()
+
+    def setColorFloat(self, rgbList):
+        """Sets the color of the button as per a rgb list in 0-1 range
+
+        :param rgbList: r g b color in 0-1.0 range eg [1.0, 0.0, 0.0]
+        :type rgbList: list
+        """
+        return self.setColor(colour.rgbFloatToInt(rgbList))
 
     def rgbColor(self):
         """returns rgb tuple with 0-255 ranges Eg (128, 255, 12)
@@ -131,7 +138,7 @@ class ColorCmdsWidget(ThemeInputWidget):
     def rgbColorFloat(self):
         """returns rgb tuple with 0-1.0 float ranges Eg (1.0, .5, .6666)
         """
-        return tuple(float(i)/255 for i in self.color)
+        return tuple(float(i) / 255 for i in self.color)
 
     def hexColor(self):
         """Returns hex color (6 letters) of the current color"""
