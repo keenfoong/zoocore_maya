@@ -6,7 +6,6 @@ import maya.cmds as cmds
 
 
 class ThemeInputWidget(QtWidgets.QWidget):
-
     def __init__(self, key=None, parent=None):
         """ A generic input widget for the themes in preferences
 
@@ -30,6 +29,7 @@ class ColorCmdsWidget(ThemeInputWidget):
     # todo: should make double click open the full (not mini) color picker.
     """
     colorChanged = QtCore.Signal()
+    colorClicked = QtCore.Signal()
 
     def __init__(self, text="", key=None, color=(255, 255, 255), parent=None, toolTip="", labelRatio=1, btnRatio=1,
                  setFixedWidth=50, spacing=5):
@@ -55,6 +55,7 @@ class ColorCmdsWidget(ThemeInputWidget):
         :type spacing: int
         """
         super(ColorCmdsWidget, self).__init__(parent=parent, key=key)
+        self.disableState = False
         self.color = None
         self.colorPicker = QtWidgets.QPushButton(parent=self)
         self.color = color
@@ -89,8 +90,16 @@ class ColorCmdsWidget(ThemeInputWidget):
     def connections(self):
         self.colorPicker.clicked.connect(lambda: self.colorConnected(self.colorPicker))
 
+    def setDisabled(self, state):
+        """Disable the label text (make it grey)"""
+        self.label.setDisabled(state)
+        self.disableState = state
+
     def colorConnected(self, widget):
         # todo: the window position should compensate if on the edge of the screen.
+        self.colorClicked.emit()
+        if self.disableState:
+            return
         pos = QtGui.QCursor.pos()
         srgb = colour.rgbIntToFloat(self.color)
         linearRgb = colour.convertColorSrgbToLinear(srgb)
@@ -119,9 +128,17 @@ class ColorCmdsWidget(ThemeInputWidget):
         # todo: stylesheet add border options
         # self.colorPicker.setStyleSheet("background-color: rgb{}; border: 0px solid darkgrey;
         # border-radius: 0px".format(color))
-        self.colorPicker.setStyleSheet("QPushButton {0} background-color: rgb{2} {1}".format("{", "}", color))
-        self.color = color
+        self.color = colour.rgbIntRound(color)
+        self.colorPicker.setStyleSheet("QPushButton {0} background-color: rgb{2} {1}".format("{", "}", self.color))
         self.colorChanged.emit()
+
+    def setColorFloat(self, rgbList):
+        """Sets the color of the button as per a rgb list in 0-1 range
+
+        :param rgbList: r g b color in 0-1.0 range eg [1.0, 0.0, 0.0]
+        :type rgbList: list
+        """
+        return self.setColor(colour.rgbFloatToInt(rgbList))
 
     def rgbColor(self):
         """returns rgb tuple with 0-255 ranges Eg (128, 255, 12)
@@ -131,7 +148,7 @@ class ColorCmdsWidget(ThemeInputWidget):
     def rgbColorFloat(self):
         """returns rgb tuple with 0-1.0 float ranges Eg (1.0, .5, .6666)
         """
-        return tuple(float(i)/255 for i in self.color)
+        return tuple(float(i) / 255 for i in self.color)
 
     def hexColor(self):
         """Returns hex color (6 letters) of the current color"""
