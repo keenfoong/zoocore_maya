@@ -29,6 +29,7 @@ class ColorCmdsWidget(ThemeInputWidget):
     # todo: should make double click open the full (not mini) color picker.
     """
     colorChanged = QtCore.Signal()
+    colorClicked = QtCore.Signal()
 
     def __init__(self, text="", key=None, color=(255, 255, 255), parent=None, toolTip="", labelRatio=1, btnRatio=1,
                  setFixedWidth=50, spacing=5):
@@ -54,6 +55,7 @@ class ColorCmdsWidget(ThemeInputWidget):
         :type spacing: int
         """
         super(ColorCmdsWidget, self).__init__(parent=parent, key=key)
+        self.disableState = False
         self.color = None
         self.colorPicker = QtWidgets.QPushButton(parent=self)
         self.color = color
@@ -88,8 +90,16 @@ class ColorCmdsWidget(ThemeInputWidget):
     def connections(self):
         self.colorPicker.clicked.connect(lambda: self.colorConnected(self.colorPicker))
 
+    def setDisabled(self, state):
+        """Disable the label text (make it grey)"""
+        self.label.setDisabled(state)
+        self.disableState = state
+
     def colorConnected(self, widget):
         # todo: the window position should compensate if on the edge of the screen.
+        self.colorClicked.emit()
+        if self.disableState:
+            return
         pos = QtGui.QCursor.pos()
         srgb = colour.rgbIntToFloat(self.color)
         linearRgb = colour.convertColorSrgbToLinear(srgb)
