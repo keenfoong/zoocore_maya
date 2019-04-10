@@ -5,7 +5,6 @@ Nothing fancy
 
 from zoo.libs.maya.qt import mayaui
 from zoo.libs.pyqt.widgets import dialog, layouts
-from zoo.libs.pyqt import utils as qtutils
 from zoo.libs.pyqt.extended import pythoneditor
 from qt import QtWidgets, QtGui
 
@@ -14,7 +13,7 @@ class MayaScriptEditorDialog(dialog.Dialog):
     """A Simple Mel/python dialog which contains a mel textEditor including autocompletion and highlighter"""
     def __init__(self, title="", width=600, height=800, icon="", parent=None, showOnInitialize=True):
         super(MayaScriptEditorDialog, self).__init__(title, width, height, icon, parent, showOnInitialize)
-        layout = qtutils.vBoxLayout(self)
+        layout = layouts.vBoxLayout(self)
         self.currentType = "python"
         self.sourceTypeWidget = layouts.RadioButtonGroup(("mel", "python"), default=1, parent=self)
         layout.addWidget(self.sourceTypeWidget)
