@@ -1,6 +1,7 @@
 from qt import QtCore, QtWidgets, QtGui
 
 from zoo.libs.pyqt import utils
+from zoo.libs.pyqt.widgets import layouts
 from zoo.libs.utils import colour
 import maya.cmds as cmds
 
@@ -63,7 +64,7 @@ class ColorCmdsWidget(ThemeInputWidget):
             self.label = QtWidgets.QLabel(parent=self, text=text)
         else:
             self.label = None
-        layout = utils.hBoxLayout(self)
+        layout = layouts.hBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         self.setColor(self.color)
         if setFixedWidth:
