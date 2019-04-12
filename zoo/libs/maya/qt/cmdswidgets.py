@@ -1,9 +1,11 @@
 from qt import QtCore, QtWidgets, QtGui
 
-from zoo.libs.pyqt import utils
-from zoo.libs.utils import colour
 import maya.cmds as cmds
 
+from zoo.libs.pyqt import utils
+from zoo.libs.pyqt.widgets import layouts
+from zoo.libs.utils import colour
+from zoo.libs.pyqt.widgetspro import extendedbutton
 
 class ThemeInputWidget(QtWidgets.QWidget):
     def __init__(self, key=None, parent=None):
@@ -27,6 +29,8 @@ class ColorCmdsWidget(ThemeInputWidget):
     It's probably preferable to use a cmds.colorSliderGrp, however it is not working yet, see other classes
     cmds.colorSliderGrp will update on any click of the color UI, not only on close
     # todo: should make double click open the full (not mini) color picker.
+
+    a menu can be added to this widget
     """
     colorChanged = QtCore.Signal()
     colorClicked = QtCore.Signal()
@@ -57,10 +61,10 @@ class ColorCmdsWidget(ThemeInputWidget):
         super(ColorCmdsWidget, self).__init__(parent=parent, key=key)
         self.disableState = False
         self.color = None
-        self.colorPicker = QtWidgets.QPushButton(parent=self)
+        self.colorPicker = extendedbutton.ExtendedButtonSimpleMenu(parent=self)
         self.color = color
         if text:
-            self.label = QtWidgets.QLabel(parent=self, text=text)
+            self.label = layouts.Label(text, parent, toolTip=toolTip)  # supports menu
         else:
             self.label = None
         layout = utils.hBoxLayout(self)
@@ -158,3 +162,48 @@ class ColorCmdsWidget(ThemeInputWidget):
         col = colour.RGBToHex(self.color)
 
         return {self.key: col}
+
+    # ----------
+    # MENUS
+    # ----------
+    def setMenu(self, menu, modeList=None, mouseButton=QtCore.Qt.RightButton):
+        """Add the left/middle/right click menu by passing in a QMenu
+
+        If a modeList is passed in then create/reset the menu to the modeList:
+
+            [("icon1", "menuName1"), ("icon2", "menuName2")]
+
+        If no modelist the menu won't change
+
+        :param menu: the Qt menu to show on middle click
+        :type menu: QtWidgets.QMenu
+        :param modeList: a list of menu modes (tuples) eg [("icon1", "menuName1"), ("icon2", "menuName2")]
+        :type modeList: list(tuple(str))
+        :param mouseButton: the mouse button clicked QtCore.Qt.LeftButton, QtCore.Qt.RightButton, QtCore.Qt.MiddleButton
+        :type mouseButton: QtCore.Qt.ButtonClick
+        """
+        if mouseButton != QtCore.Qt.LeftButton:  # don't create an edit menu if left mouse button menu
+            self.colorPicker.setMenu(menu, mouseButton=mouseButton)
+        # only add the action list (menu items) to the label, as the line edit uses the same menu
+        self.label.setMenu(menu, modeList=modeList, mouseButton=mouseButton)
+
+    def addActionList(self, modes, mouseButton=QtCore.Qt.RightButton):
+        """resets the appropriate mouse click menu with the incoming modes
+
+            modeList: [("icon1", "menuName1"), ("icon2", "menuName2"), ("icon3", "menuName3")]
+
+        resets the lists and menus:
+
+            self.menuIconList: ["icon1", "icon2", "icon3"]
+            self.menuIconList: ["menuName1", "menuName2", "menuName3"]
+
+        :param modes: a list of menu modes (tuples) eg [("icon1", "menuName1"), ("icon2", "menuName2")]
+        :type modes: list(tuple(str))
+        :param mouseButton: the mouse button clicked QtCore.Qt.LeftButton, QtCore.Qt.RightButton, QtCore.Qt.MiddleButton
+        :type mouseButton: QtCore.Qt.ButtonClick
+        """
+        # only add the action list (menu items) to the label, as the line edit uses the same menu
+        if self.label:
+            self.label.addActionList(modes, mouseButton=mouseButton)
+        else:
+            self.colorPicker.addActionList(modes, mouseButton=mouseButton)
