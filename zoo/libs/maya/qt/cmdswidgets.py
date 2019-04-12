@@ -67,7 +67,7 @@ class ColorCmdsWidget(ThemeInputWidget):
             self.label = layouts.Label(text, parent, toolTip=toolTip)  # supports menu
         else:
             self.label = None
-        layout = utils.hBoxLayout(self)
+        layout = layouts.hBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         self.setColor(self.color)
         if setFixedWidth:
