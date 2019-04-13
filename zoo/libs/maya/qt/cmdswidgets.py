@@ -7,6 +7,7 @@ from zoo.libs.pyqt.widgets import layouts
 from zoo.libs.utils import colour
 from zoo.libs.pyqt.widgetspro import extendedbutton
 
+
 class ThemeInputWidget(QtWidgets.QWidget):
     def __init__(self, key=None, parent=None):
         """ A generic input widget for the themes in preferences
