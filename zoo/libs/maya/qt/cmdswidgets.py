@@ -303,14 +303,16 @@ class MayaColorSlider(QtWidgets.QWidget, layouts.MenuCreateClickMethods):
     def _onColorChanged(self, *args):
         """Gets the current color slider color and emits it
         """
-        self._colorLinear = self.colorLinearInt()
+        self._colorLinear = self.colorLinearFloat()
         self._updateColor()
         self.colorChanged.emit(self._colorLinear)
         self.colorClicked.emit()
 
     def setWidth(self, width):
-        """sets the size of the color widget, dpi scale handled"""
-        pass  # must be done with the cmds command, can do later
+        """sets the size of the color widget, dpi scale handled, will scale with cmds as pyside has issues overriding
+        *Not Tested should work"""
+        self.colorWidth = width
+        cmds.colorSliderGrp(e=True, columnWidth=[1, self.colorWidth])
 
     def setHeight(self, height):
         """sets the size of the color widget, dpi scale handled"""
@@ -327,6 +329,10 @@ class MayaColorSlider(QtWidgets.QWidget, layouts.MenuCreateClickMethods):
         # enables the color widget so it can be clicked
         cmds.colorSliderGrp(self._getFullName(), e=True, enable=enabled)
         self.label.setDisabled(not enabled)
+
+    def setDisabledLabel(self, disabled=True):
+        # disables the color widget label only, the color picker will work as per normal
+        self.label.setDisabled(disabled)
 
     def setColorLinearFloat(self, color, noEmit=True):
         """Sets the color as linear color in 0-1.0 float ranges Eg (1.0, .5, .6666)
@@ -356,7 +362,7 @@ class MayaColorSlider(QtWidgets.QWidget, layouts.MenuCreateClickMethods):
         if not noEmit:
             self._onColorChanged()  # emits and updates the color swatch
 
-    def colorLinearInt(self):
+    def colorLinearFloat(self):
         """returns the color of the color picker in linear color
         With 0-1.0 float ranges Eg (1.0, .5, .6666), the color is in Linear color, not SRGB
         """
@@ -378,7 +384,9 @@ class MayaColorSlider(QtWidgets.QWidget, layouts.MenuCreateClickMethods):
     # ----------
 
     def setMenu(self, menu, modeList=None, mouseButton=QtCore.Qt.RightButton):
-        """Add the left/middle/right click menu by passing in a QMenu
+        """Add the left/middle/right click menu by passing in a QMenu,
+
+        **Note: only works on the label currently
 
         If a modeList is passed in then create/reset the menu to the modeList:
 
@@ -400,6 +408,8 @@ class MayaColorSlider(QtWidgets.QWidget, layouts.MenuCreateClickMethods):
 
     def addActionList(self, modes, mouseButton=QtCore.Qt.RightButton):
         """resets the appropriate mouse click menu with the incoming modes
+
+        **Note: only works on the label currently
 
             modeList: [("icon1", "menuName1"), ("icon2", "menuName2"), ("icon3", "menuName3")]
 
