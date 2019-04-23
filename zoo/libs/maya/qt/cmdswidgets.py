@@ -6,6 +6,7 @@ from qt import QtCore, QtWidgets, QtGui
 import maya.cmds as cmds
 import maya.OpenMayaUI as om1
 
+from zoo.libs.maya.qt import mayaui
 from zoo.libs.pyqt import utils
 from zoo.libs.pyqt.widgets import layouts
 from zoo.libs.utils import colour
@@ -261,32 +262,32 @@ class MayaColorSlider(QtWidgets.QWidget, layouts.MenuCreateClickMethods):
         Credit to Chris Zurbrigg see his tutorials http://zurbrigg.com/tutorials for solving various embed issues
         """
 
-        # 1) Create the colorSliderGrp """
+        # Create the colorSliderGrp """
         window = cmds.window()
         # color_slider_name
         #  width=1 is the pixel width of the slider which is hidden,
         #  columnWidth specifies col 1 width from the kwargs
         color_slider_name = cmds.colorSliderGrp(width=1, columnWidth=[1, self.colorWidth])
 
-        # 2) Find the colorSliderGrp widget
+        # Find the colorSliderGrp widget
         self._color_slider_obj = om1.MQtUtil.findControl(color_slider_name)
         if self._color_slider_obj:
-            self._color_slider_widget = wrapInstance(long(self._color_slider_obj), QtWidgets.QWidget)
+            self._color_slider_widget = mayaui.toQtObject(color_slider_name)
 
-            # 3) Reparent the colorSliderGrp widget to this widget
+            # Reparent the colorSliderGrp widget to this widget
             self.main_layout.addWidget(self._color_slider_widget, self.btnRatio)
 
-            # 4) Identify/store the colorSliderGrp's child widgets (and hide if necessary)
+            # Identify/store the colorSliderGrp's child widgets (and hide if necessary)
             self._slider_widget = self._color_slider_widget.findChild(QtWidgets.QWidget, "slider")
             if self._slider_widget:
                 self._slider_widget.hide()
 
             self._color_widget = self._color_slider_widget.findChild(QtWidgets.QWidget, "port")
-            cmds.colorSliderGrp(self._getFullName(), e=True, changeCommand=partial(self._onColorChanged))
+            cmds.colorSliderGrp(self.fullName(), e=True, changeCommand=partial(self._onColorChanged))
 
         cmds.deleteUI(window, window=True)
 
-    def _getFullName(self):
+    def fullName(self):
         return om1.MQtUtil.fullName(long(self._color_slider_obj))
 
     def _updateColor(self):
@@ -295,7 +296,7 @@ class MayaColorSlider(QtWidgets.QWidget, layouts.MenuCreateClickMethods):
         """
         colorSrgbFloat = colour.convertColorLinearToSrgb(self._colorLinear)
         colorSrgbInt = colour.rgbFloatToInt(colorSrgbFloat)
-        cmds.colorSliderGrp(self._getFullName(), edit=True, rgbValue=(self._colorLinear[0],
+        cmds.colorSliderGrp(self.fullName(), edit=True, rgbValue=(self._colorLinear[0],
                                                                       self._colorLinear[1],
                                                                       self._colorLinear[2]))
         self._color_widget.setStyleSheet("QLabel {} background-color: rgb{} {}".format("{", str(colorSrgbInt), "}"))
@@ -322,12 +323,12 @@ class MayaColorSlider(QtWidgets.QWidget, layouts.MenuCreateClickMethods):
     def setDisabled(self, disabled=True):
         # disables the color widget so it cannot be clicked
         enabled = not disabled
-        cmds.colorSliderGrp(self._getFullName(), e=True, enable=enabled)
+        cmds.colorSliderGrp(self.fullName(), e=True, enable=enabled)
         self.label.setDisabled(disabled)
 
     def setEnabled(self, enabled=True):
         # enables the color widget so it can be clicked
-        cmds.colorSliderGrp(self._getFullName(), e=True, enable=enabled)
+        cmds.colorSliderGrp(self.fullName(), e=True, enable=enabled)
         self.label.setDisabled(not enabled)
 
     def setDisabledLabel(self, disabled=True):
@@ -337,7 +338,7 @@ class MayaColorSlider(QtWidgets.QWidget, layouts.MenuCreateClickMethods):
     def setColorLinearFloat(self, color, noEmit=True):
         """Sets the color as linear color in 0-1.0 float ranges Eg (1.0, .5, .6666)
         emits the color as a Srgb Int color Eg (0, 255, 134)"""
-        cmds.colorSliderGrp(self._getFullName(), edit=True, rgbValue=(color[0], color[1], color[2]))
+        cmds.colorSliderGrp(self.fullName(), edit=True, rgbValue=(color[0], color[1], color[2]))
         self._colorLinear = color
         self._updateColor()
         if not noEmit:
@@ -366,7 +367,7 @@ class MayaColorSlider(QtWidgets.QWidget, layouts.MenuCreateClickMethods):
         """returns the color of the color picker in linear color
         With 0-1.0 float ranges Eg (1.0, .5, .6666), the color is in Linear color, not SRGB
         """
-        self._colorLinear = cmds.colorSliderGrp(self._getFullName(), q=True, rgbValue=True)
+        self._colorLinear = cmds.colorSliderGrp(self.fullName(), q=True, rgbValue=True)
         return self._colorLinear
 
     def colorSrgbInt(self):
@@ -401,9 +402,7 @@ class MayaColorSlider(QtWidgets.QWidget, layouts.MenuCreateClickMethods):
         :param mouseButton: the mouse button clicked QtCore.Qt.LeftButton, QtCore.Qt.RightButton, QtCore.Qt.MiddleButton
         :type mouseButton: QtCore.Qt.ButtonClick
         """
-        # if mouseButton != QtCore.Qt.LeftButton:  # don't create an edit menu if left mouse button menu
-            # self.colorPicker.setMenu(menu, mouseButton=mouseButton)
-        # only add the action list (menu items) to the label, as the line edit uses the same menu
+        # TODO: add menu to color picker button
         self.label.setMenu(menu, modeList=modeList, mouseButton=mouseButton)
 
     def addActionList(self, modes, mouseButton=QtCore.Qt.RightButton):
@@ -423,9 +422,7 @@ class MayaColorSlider(QtWidgets.QWidget, layouts.MenuCreateClickMethods):
         :param mouseButton: the mouse button clicked QtCore.Qt.LeftButton, QtCore.Qt.RightButton, QtCore.Qt.MiddleButton
         :type mouseButton: QtCore.Qt.ButtonClick
         """
-        # only add the action list (menu items) to the label, as the line edit uses the same menu
+        # TODO: add menu to color picker button
         if self.label:
             self.label.addActionList(modes, mouseButton=mouseButton)
-        # else:
-            # self.colorPicker.addActionList(modes, mouseButton=mouseButton)
 
